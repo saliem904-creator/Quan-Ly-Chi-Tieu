@@ -982,7 +982,7 @@
             </div>
             <div>
               <label class="block text-xs font-semibold text-slate-700 mb-1">Nguồn thu nhập</label>
-              <select v-model="incomeForm.category" @change="if (!incomeForm.id) incomeForm.recurring = incomeForm.category === 'Lương chính'" required
+              <select v-model="incomeForm.category" @change="incomeForm.id || (incomeForm.recurring = incomeForm.category === 'Lương chính')" required
                       class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 font-medium outline-none focus:border-emerald-500">
                 <option v-for="cat in incomeCategories" :key="cat.name" :value="cat.name">{{ cat.name }}</option>
               </select>
