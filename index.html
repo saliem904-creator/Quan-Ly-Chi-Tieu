@@ -1741,6 +1741,7 @@
           const p = authForm.value.password;
           if (!/^[a-z0-9._-]{3,30}$/.test(u)) { authError.value = 'Tên đăng nhập 3–30 ký tự: chữ thường không dấu, số, dấu . _ -'; return; }
           if (p.length < 6) { authError.value = 'Mật khẩu cần tối thiểu 6 ký tự.'; return; }
+          if (!authInstance) { authError.value = authError.value || 'Chưa kết nối được Firebase, hãy tải lại trang.'; return; }
           authBusy.value = true;
           try {
             const { signInWithEmailAndPassword, createUserWithEmailAndPassword } = window.FirebaseDB;
@@ -2199,6 +2200,11 @@
             return;
           }
 
+          if (location.protocol === 'file:') {
+            authError.value = 'Không thể đăng nhập khi mở trực tiếp file từ máy. Hãy đưa file lên một địa chỉ https (Netlify / Firebase Hosting) rồi mở bằng link đó.';
+            authReady.value = true;
+            return;
+          }
           const ready = await Promise.race([
             window.FirebaseDB ? Promise.resolve(true) : new Promise(r => window.addEventListener('firebase-ready', () => r(true), { once: true })),
             new Promise(r => setTimeout(() => r(false), 10000))
@@ -2212,6 +2218,7 @@
               dbInstance = F.initializeFirestore(app, { localCache: F.persistentLocalCache({ tabManager: F.persistentMultipleTabManager() }) });
             } catch (e) { dbInstance = F.getFirestore(app); }
             authInstance = F.getAuth(app);
+            setTimeout(() => { if (!authReady.value) { authError.value = 'Không kết nối được Firebase. Kiểm tra mạng và Authorized domains rồi tải lại trang.'; authReady.value = true; } }, 12000);
             F.onAuthStateChanged(authInstance, (user) => {
               stopListening();
               currentUser.value = user;
