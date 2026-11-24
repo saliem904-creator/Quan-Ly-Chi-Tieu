@@ -353,6 +353,32 @@
             </button>
           </div>
 
+          <!-- TIỀN TIẾT KIỆM ĐÃ TÍCH LŨY -->
+          <div v-if="savingFunds.length" class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs">
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <h3 class="font-bold text-slate-900 text-base"><i class="fa-solid fa-piggy-bank text-indigo-600 mr-2"></i>Tiền Tiết Kiệm Đã Tích Lũy</h3>
+                <p class="text-xs text-slate-500 mt-0.5">Tính đến hết tháng {{ formattedSelectedMonthLabel }}</p>
+              </div>
+              <button @click="activeTab = 'envelopes'" class="shrink-0 text-xs font-semibold text-indigo-600 hover:text-indigo-800 whitespace-nowrap">Chi tiết <i class="fa-solid fa-arrow-right text-[10px]"></i></button>
+            </div>
+            <div class="mt-3 text-3xl font-extrabold text-indigo-700 break-words">{{ formatVND(savingTotals.balance) }}</div>
+            <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 mt-1 text-xs">
+              <span class="text-slate-500">Đã chuyển vào sổ: <b class="text-slate-700">{{ formatVND(savingTotals.inBank) }}</b></span>
+              <span :class="savingTotals.pending > 0 ? 'text-amber-600 font-semibold' : 'text-emerald-600 font-semibold'">{{ savingTotals.pending > 0 ? 'Chưa chuyển ' + formatVND(savingTotals.pending) : 'Đã chuyển đủ' }}</span>
+            </div>
+            <div class="mt-4 space-y-3">
+              <div v-for="e in savingFunds" :key="e.id">
+                <div class="flex items-center justify-between gap-2 text-sm">
+                  <span class="font-semibold text-slate-700 min-w-0 break-words"><i class="inline-block w-2 h-2 rounded-full mr-1.5" :style="{ background: e.color }"></i>{{ e.name }}</span>
+                  <span class="font-bold text-slate-900 whitespace-nowrap">{{ formatVND(e.balance) }}</span>
+                </div>
+                <div v-if="e.goalAmount > 0 || e.goalMonths > 0" class="h-1.5 rounded-full bg-slate-100 overflow-hidden mt-1.5"><div class="h-full rounded-full" :style="{ width: e.progress + '%', background: e.color }"></div></div>
+              </div>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-3">Số tiền gốc theo kế hoạch, chưa gồm tiền lãi của ngân hàng.</p>
+          </div>
+
           <!-- CHARTS & SUMMARY SECTION -->
           <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
@@ -774,6 +800,14 @@
                 </div>
               </div>
 
+                <div v-if="spendEnvelopes.length > 1">
+                  <label class="block text-xs font-semibold text-slate-600 mb-1">Quỹ</label>
+                  <select v-model="expenseForm.envelope" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 font-medium text-slate-800 text-sm outline-none">
+                    <option value="">Tự động</option>
+                    <option v-for="e in spendEnvelopes" :key="e.id" :value="e.id">{{ e.name }}</option>
+                  </select>
+                </div>
+
               <!-- Note & Submit -->
               <div class="flex flex-col sm:flex-row gap-3">
                 <input type="text" v-model="expenseForm.note" placeholder="Ghi chú chi tiết (ví dụ: Ăn trưa bún bò, Đổ xăng 50k...)"
@@ -839,6 +873,88 @@
         </div>
 
         <!-- ==================== TAB 5: BÁO CÁO & DATA ==================== -->
+        <div v-if="activeTab === 'envelopes'" class="space-y-6">
+          <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs">
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <h3 class="font-bold text-slate-900 text-base"><i class="fa-solid fa-envelope-open-text text-emerald-600 mr-2"></i>Chia Quỹ Tháng {{ formattedSelectedMonthLabel }}</h3>
+                <p class="text-xs text-slate-500 mt-1">Thu nhập tháng này: <b class="text-slate-800">{{ formatVND(monthlySummary.totalIncome) }}</b></p>
+                <p v-if="savingFunds.length" class="text-xs text-slate-500">Tổng tiết kiệm đã tích lũy: <b class="text-indigo-700">{{ formatVND(savingTotals.balance) }}</b></p>
+              </div>
+              <button @click="openEnvelopeSettings" class="shrink-0 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3 py-2 rounded-lg transition"><i class="fa-solid fa-sliders mr-1"></i>Chia lại %</button>
+            </div>
+            <div class="flex h-3 rounded-full overflow-hidden mt-4 bg-slate-100">
+              <div v-for="e in envelopeView" :key="e.id" :style="{ width: Math.min(e.pct, 100) + '%', background: e.color }"></div>
+            </div>
+            <div class="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-[11px] text-slate-600">
+              <span v-for="e in envelopeView" :key="e.id"><i class="inline-block w-2 h-2 rounded-full mr-1" :style="{ background: e.color }"></i>{{ e.name }} {{ e.pct }}%</span>
+            </div>
+            <p v-if="envelopeTotalPct !== 100" class="mt-3 text-xs rounded-lg px-3 py-2 bg-amber-50 text-amber-800 border border-amber-100">
+              {{ envelopeTotalPct < 100 ? 'Đang chia ' + envelopeTotalPct + '% — còn ' + (100 - envelopeTotalPct) + '% chưa vào quỹ nào.' : 'Đang chia ' + envelopeTotalPct + '% — vượt ' + (envelopeTotalPct - 100) + '% so với thu nhập.' }}
+            </p>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div v-for="e in envelopeView" :key="e.id" class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs">
+              <div class="flex items-start justify-between gap-3">
+                <div class="flex items-center gap-2.5 min-w-0">
+                  <span class="w-2.5 h-9 rounded-full shrink-0" :style="{ background: e.color }"></span>
+                  <div class="min-w-0">
+                    <div class="font-bold text-slate-900 text-sm break-words">{{ e.name }}</div>
+                    <div class="text-xs text-slate-500">{{ e.pct }}% • {{ e.kind === 'save' ? 'tiết kiệm (khóa)' : 'chi tiêu' }}</div>
+                  </div>
+                </div>
+                <div class="text-right shrink-0">
+                  <div class="text-[11px] text-slate-400 uppercase">{{ e.kind === 'save' ? 'Dành tháng này' : 'Hạn mức' }}</div>
+                  <div class="font-bold text-slate-900 text-sm whitespace-nowrap">{{ formatVND(e.alloc) }}</div>
+                </div>
+              </div>
+
+              <template v-if="e.kind === 'spend'">
+                <div class="h-2.5 rounded-full bg-slate-100 overflow-hidden mt-4">
+                  <div class="h-full rounded-full transition-all" :style="{ width: Math.min(e.usedPct, 100) + '%', background: e.usedPct >= 100 ? '#f43f5e' : (e.usedPct >= 80 ? '#f59e0b' : e.color) }"></div>
+                </div>
+                <div class="flex items-center justify-between gap-2 mt-2 text-xs">
+                  <span class="text-slate-500">Đã dùng {{ formatVND(e.spent) }} ({{ e.usedPct }}%)</span>
+                  <span :class="['font-semibold whitespace-nowrap', e.remaining >= 0 ? 'text-emerald-700' : 'text-rose-600']">{{ e.remaining >= 0 ? 'Còn ' + formatVND(e.remaining) : 'Vượt ' + formatVND(-e.remaining) }}</span>
+                </div>
+                <p v-if="e.dedPart > 0" class="text-[11px] text-slate-400 mt-1">Đã gồm {{ formatVND(e.dedPart) }} khoản trừ lương</p>
+              </template>
+
+              <template v-else>
+                <div class="mt-4">
+                  <div class="text-[11px] text-slate-400 uppercase">Đã tích lũy</div>
+                  <div class="text-2xl font-extrabold break-words" :style="{ color: e.color }">{{ formatVND(e.balance) }}</div>
+                  <div class="text-xs text-slate-500">{{ e.count }} tháng<span v-if="e.withdrawn > 0"> • đã rút {{ formatVND(e.withdrawn) }}</span></div>
+                </div>
+                <div v-if="e.goalAmount > 0 || e.goalMonths > 0" class="mt-3">
+                  <div class="h-2.5 rounded-full bg-slate-100 overflow-hidden"><div class="h-full rounded-full transition-all" :style="{ width: e.progress + '%', background: e.color }"></div></div>
+                  <div class="flex items-center justify-between gap-2 mt-1.5 text-xs">
+                    <span class="text-slate-500">{{ e.goalAmount > 0 ? formatVND(e.balance) + ' / ' + formatVND(e.goalAmount) : 'Tháng ' + Math.min(e.count, e.goalMonths) + ' / ' + e.goalMonths }} ({{ e.progress }}%)</span>
+                    <span v-if="e.goalReached" class="font-semibold text-emerald-700 whitespace-nowrap">Đã đạt mục tiêu</span>
+                    <span v-else-if="e.eta" class="text-slate-500 whitespace-nowrap">Dự kiến đủ T{{ fmtYM(e.eta) }}</span>
+                  </div>
+                </div>
+                <label class="flex items-start gap-2.5 mt-4 p-3 rounded-xl bg-slate-50 border border-slate-100 cursor-pointer">
+                  <input type="checkbox" :checked="e.isTransferred" @change="toggleTransferred(e.id)" class="mt-0.5 w-4 h-4 accent-emerald-600 shrink-0">
+                  <span class="text-xs text-slate-700 leading-relaxed">Đã chuyển phần tháng này (<b>{{ formatVND(e.alloc) }}</b>) vào sổ / tài khoản riêng</span>
+                </label>
+                <div class="flex items-center justify-between gap-2 mt-2 text-[11px]">
+                  <span class="text-slate-500">Đã chuyển thực tế: {{ formatVND(e.transferredSum) }}</span>
+                  <span :class="e.accrued - e.transferredSum > 0 ? 'text-amber-600 font-semibold' : 'text-emerald-600 font-semibold'">{{ e.accrued - e.transferredSum > 0 ? 'Chưa chuyển ' + formatVND(e.accrued - e.transferredSum) : 'Đã chuyển đủ' }}</span>
+                </div>
+                <button @click="openWithdraw(e)" class="mt-3 w-full py-2 rounded-xl text-xs font-semibold border border-slate-200 text-slate-600 hover:bg-slate-50 transition"><i class="fa-solid fa-hand-holding-dollar mr-1"></i>Rút tiền từ quỹ này</button>
+                <div v-if="e.withdrawals.length" class="mt-3 space-y-1.5">
+                  <div v-for="w in e.withdrawals.slice(0, 3)" :key="w.id" class="flex items-center justify-between gap-2 text-[11px] text-slate-500">
+                    <span class="min-w-0 truncate">{{ w.date.slice(8, 10) }}/{{ w.date.slice(5, 7) }}/{{ w.date.slice(0, 4) }} • {{ w.note || 'Rút tiền' }}</span>
+                    <span class="flex items-center gap-1 shrink-0"><b class="text-rose-600">-{{ formatVND(w.amount) }}</b><button @click="deleteWithdraw(e.id, w.id)" class="w-6 h-6 text-slate-300 hover:text-rose-600"><i class="fa-solid fa-xmark"></i></button></span>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </div>
+        </div>
+
         <div v-if="activeTab === 'reports'" class="space-y-6">
           
           <!-- Annual Summary Table -->
@@ -964,15 +1080,27 @@
     </main>
 
     <!-- MOBILE BOTTOM NAVIGATION TAB BAR -->
+    <div v-if="showMoreMenu" class="md:hidden fixed inset-0 z-30 bg-slate-900/30" @click="showMoreMenu = false"></div>
+    <div v-if="showMoreMenu" class="md:hidden fixed left-3 right-3 z-40 bg-white rounded-2xl border border-slate-200 shadow-xl p-2" style="bottom: calc(72px + env(safe-area-inset-bottom, 0px))">
+      <button v-for="t in moreTabs" :key="t.id" @click="goTab(t.id)"
+              :class="['w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left transition', activeTab === t.id ? 'bg-emerald-50' : 'hover:bg-slate-50']">
+        <span :class="['w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0', activeTab === t.id ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500']"><i :class="t.icon"></i></span>
+        <span class="min-w-0">
+          <span class="block text-sm font-bold text-slate-800">{{ t.name }}</span>
+          <span class="block text-xs text-slate-500">{{ t.desc }}</span>
+        </span>
+      </button>
+    </div>
     <nav class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/80 px-2 py-2 shadow-lg flex justify-around items-center pb-safe">
-      <button v-for="tab in tabs" :key="tab.id"
-              @click="activeTab = tab.id"
-              :class="[
-                'flex flex-col items-center justify-center py-1 px-3 rounded-xl transition text-[11px] font-semibold gap-1',
-                activeTab === tab.id ? 'text-emerald-600' : 'text-slate-400 hover:text-slate-600'
-              ]">
+      <button v-for="tab in mainMobileTabs" :key="tab.id" @click="goTab(tab.id)"
+              :class="['flex flex-col items-center justify-center py-1 px-3 rounded-xl transition text-[11px] font-semibold gap-1', activeTab === tab.id ? 'text-emerald-600' : 'text-slate-400 hover:text-slate-600']">
         <i :class="[tab.icon, 'text-lg']"></i>
         <span>{{ tab.shortName || tab.name }}</span>
+      </button>
+      <button @click="showMoreMenu = !showMoreMenu"
+              :class="['flex flex-col items-center justify-center py-1 px-3 rounded-xl transition text-[11px] font-semibold gap-1', (isMoreActive || showMoreMenu) ? 'text-emerald-600' : 'text-slate-400 hover:text-slate-600']">
+        <i class="fa-solid fa-table-cells-large text-lg"></i>
+        <span>Quản lý</span>
       </button>
     </nav>
 
@@ -1221,6 +1349,13 @@
               </select>
             </div>
           </div>
+          <div v-if="spendEnvelopes.length > 1">
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Quỹ</label>
+            <select v-model="expenseForm.envelope" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 font-medium outline-none">
+              <option value="">Tự động</option>
+              <option v-for="e in spendEnvelopes" :key="e.id" :value="e.id">{{ e.name }}</option>
+            </select>
+          </div>
 
           <div>
             <label class="block text-xs font-semibold text-slate-700 mb-1">Ghi chú</label>
@@ -1262,7 +1397,71 @@
     </div>
 
     <!-- MODAL 5: DATA BACKUP & RESTORE DIALOG -->
-    <div v-if="showBackupModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+    <!-- MODAL: CHIA QUỸ -->
+  <div v-if="showEnvModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-5 space-y-4">
+      <div class="flex items-center justify-between gap-3">
+        <h3 class="font-bold text-slate-900 text-base"><i class="fa-solid fa-sliders text-emerald-600 mr-2"></i>Chia quỹ theo % thu nhập</h3>
+        <button @click="showEnvModal = false" class="text-slate-400 hover:text-slate-700 w-8 h-8"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <p class="text-xs text-slate-500">Đổi % ở tháng nào thì áp dụng từ tháng đó trở đi, các tháng trước giữ nguyên.</p>
+      <div class="space-y-3">
+        <div v-for="(it, i) in envDraft.items" :key="it.id" class="rounded-xl border border-slate-200 p-3 space-y-2">
+          <div class="flex items-center gap-2">
+            <input v-model="it.name" type="text" placeholder="Tên quỹ" class="flex-1 min-w-0 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium outline-none focus:border-emerald-500">
+            <div class="relative w-24 shrink-0">
+              <input v-model.number="it.pct" type="number" min="0" max="100" step="1" inputmode="decimal" class="w-full bg-slate-50 border border-slate-200 rounded-lg pl-3 pr-7 py-2 text-sm font-bold text-right outline-none focus:border-emerald-500">
+              <span class="absolute right-2.5 top-2.5 text-xs text-slate-400">%</span>
+            </div>
+            <button @click="removeEnvDraft(i)" class="w-8 h-8 shrink-0 text-slate-400 hover:text-rose-600"><i class="fa-solid fa-trash-can"></i></button>
+          </div>
+          <div class="text-[11px] text-slate-500">{{ it.kind === 'save' ? 'Tiết kiệm — bị khóa, chỉ rút khi bạn ghi "Rút tiền"' : 'Chi tiêu — bị trừ dần khi bạn ghi chi tiêu' }}</div>
+          <div v-if="it.kind === 'save'" class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div><label class="block text-[11px] font-semibold text-slate-600 mb-1">Mục tiêu số tiền (tùy chọn)</label><input v-model.number="it.goalAmount" type="number" min="0" step="1000000" inputmode="numeric" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-emerald-500"></div>
+            <div><label class="block text-[11px] font-semibold text-slate-600 mb-1">Hoặc mục tiêu số tháng</label><input v-model.number="it.goalMonths" type="number" min="0" step="1" inputmode="numeric" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-emerald-500"></div>
+            <div class="sm:col-span-2"><label class="block text-[11px] font-semibold text-slate-600 mb-1">Bắt đầu tích lũy từ tháng (để trống = từ tháng có thu nhập đầu tiên)</label><input v-model="it.startMonth" type="month" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-emerald-500"></div>
+          </div>
+        </div>
+      </div>
+      <div class="flex gap-2">
+        <button @click="addEnvDraft('spend')" class="flex-1 py-2 rounded-xl text-xs font-semibold border border-dashed border-slate-300 text-slate-600 hover:bg-slate-50">+ Quỹ chi tiêu</button>
+        <button @click="addEnvDraft('save')" class="flex-1 py-2 rounded-xl text-xs font-semibold border border-dashed border-slate-300 text-slate-600 hover:bg-slate-50">+ Quỹ tiết kiệm</button>
+      </div>
+      <div>
+        <label class="block text-[11px] font-semibold text-slate-600 mb-1">Các khoản trừ lương (tiền nhà, trả góp...) tính vào quỹ</label>
+        <select v-model="envDraft.deductionsIn" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none">
+          <option value="">Không tính vào quỹ nào</option>
+          <option v-for="it in envDraft.items.filter(x => x.kind === 'spend')" :key="it.id" :value="it.id">{{ it.name || '(chưa đặt tên)' }}</option>
+        </select>
+      </div>
+      <div :class="['text-xs font-semibold rounded-lg px-3 py-2', envDraftTotal === 100 ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-800']">
+        Tổng đã chia: {{ envDraftTotal }}% <span v-if="envDraftTotal !== 100">— {{ envDraftTotal < 100 ? 'còn ' + Math.round((100 - envDraftTotal) * 100) / 100 + '% chưa phân bổ' : 'vượt ' + Math.round((envDraftTotal - 100) * 100) / 100 + '%' }}</span>
+      </div>
+      <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+        <button @click="showEnvModal = false" class="px-4 py-2 rounded-xl text-sm font-semibold text-slate-500 hover:bg-slate-50">Hủy</button>
+        <button @click="saveEnvelopeSettings" class="px-5 py-2 rounded-xl text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white">Lưu</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: RÚT TIỀN TỪ QUỸ -->
+  <div v-if="showWithdrawModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-5 space-y-4">
+      <div class="flex items-center justify-between gap-3">
+        <h3 class="font-bold text-slate-900 text-base">Rút từ "{{ withdrawForm.envName }}"</h3>
+        <button @click="showWithdrawModal = false" class="text-slate-400 hover:text-slate-700 w-8 h-8"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div><label class="block text-xs font-semibold text-slate-700 mb-1">Số tiền rút (VNĐ)</label><input v-model="withdrawForm.amount" type="number" min="0" inputmode="numeric" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-medium outline-none focus:border-emerald-500"></div>
+      <div><label class="block text-xs font-semibold text-slate-700 mb-1">Ngày rút</label><input v-model="withdrawForm.date" type="date" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-medium outline-none"></div>
+      <div><label class="block text-xs font-semibold text-slate-700 mb-1">Lý do</label><input v-model="withdrawForm.note" type="text" placeholder="Ví dụ: Sửa xe đột xuất" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-emerald-500"></div>
+      <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+        <button @click="showWithdrawModal = false" class="px-4 py-2 rounded-xl text-sm font-semibold text-slate-500 hover:bg-slate-50">Hủy</button>
+        <button @click="saveWithdraw" class="px-5 py-2 rounded-xl text-sm font-bold bg-rose-600 hover:bg-rose-700 text-white">Ghi nhận rút</button>
+      </div>
+    </div>
+  </div>
+
+  <div v-if="showBackupModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
       <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
         <div class="flex items-center justify-between border-b border-slate-100 pb-3">
           <h3 class="font-bold text-slate-900 text-base flex items-center gap-2">
@@ -1337,6 +1536,7 @@
           { id: 'incomes', name: 'Thu nhập & Lương', shortName: 'Thu nhập', icon: 'fa-solid fa-money-bill-wave' },
           { id: 'deductions', name: 'Khoản trừ lương', shortName: 'Trừ lương', icon: 'fa-solid fa-receipt' },
           { id: 'expenses', name: 'Chi tiêu hàng ngày', shortName: 'Chi tiêu', icon: 'fa-solid fa-cart-shopping' },
+          { id: 'envelopes', name: 'Chia quỹ', shortName: 'Quỹ', icon: 'fa-solid fa-envelope-open-text' },
           { id: 'reports', name: 'Báo cáo & Data', shortName: 'Báo cáo', icon: 'fa-solid fa-file-invoice-dollar' }
         ];
 
@@ -1411,7 +1611,7 @@
         const showExpenseModal = ref(false);
         const expenseForm = ref({
           id: null, amount: 0, date: new Date().toISOString().substring(0, 10), 
-          category: 'Ăn uống', note: ''
+          category: 'Ăn uống', note: '', envelope: ''
         });
         const expenseFormFormattedAmount = ref('');
         const modalExpenseFormattedAmount = ref('');
@@ -1591,6 +1791,169 @@
           };
         });
 
+        // ===== QUỸ TIỀN (chia % thu nhập) =====
+        const ENV_COLORS = ['#10b981', '#6366f1', '#f59e0b', '#f43f5e', '#0ea5e9', '#8b5cf6', '#14b8a6', '#ec4899'];
+        const envelopeCfg = ref(null);
+        const defaultEnvelopes = () => ({ id: 'envelopes', deductionsIn: 'survive', items: [
+          { id: 'survive', name: 'Sinh tồn', pct: 50, kind: 'spend' },
+          { id: 'saving', name: 'Tiết kiệm / Đầu tư', pct: 20, kind: 'save', goalAmount: 0, goalMonths: 24, transferred: {}, withdrawals: [] },
+          { id: 'reserve', name: 'Dự phòng khẩn cấp', pct: 10, kind: 'save', goalAmount: 0, goalMonths: 0, transferred: {}, withdrawals: [] },
+          { id: 'fun', name: 'Quỹ vui', pct: 20, kind: 'spend' }
+        ]});
+        const envCfg = computed(() => envelopeCfg.value || defaultEnvelopes());
+        const ensureCfg = () => { if (!envelopeCfg.value) envelopeCfg.value = defaultEnvelopes(); return envelopeCfg.value; };
+        const persistEnv = () => syncItemToFirestore('settings', envelopeCfg.value);
+        const spendEnvelopes = computed(() => envCfg.value.items.filter(i => i.kind === 'spend'));
+        const fmtYM = (ym) => ym ? ym.slice(5) + '/' + ym.slice(0, 4) : '';
+        const incomeOfMonth = (ym) => incomesForMonth(ym).reduce((sum, i) => sum + Number(i.amount || 0), 0);
+        const firstIncomeMonth = computed(() => {
+          let min = '';
+          incomes.value.forEach(i => { const m = i.startMonth || (i.date || '').slice(0, 7); if (m && (!min || m < min)) min = m; });
+          return min || selectedMonth.value;
+        });
+        // % của quỹ tại một tháng (có lịch sử để đổi % không làm đổi các tháng cũ)
+        const pctAt = (it, ym) => {
+          const h = it.pctHistory;
+          if (!h || !h.length) return Number(it.pct) || 0;
+          let v = h[0].pct;
+          h.forEach(e => { if (e.from <= ym) v = e.pct; });
+          return Number(v) || 0;
+        };
+        const envelopeTotalPct = computed(() => Math.round(envCfg.value.items.reduce((sum, it) => sum + pctAt(it, selectedMonth.value), 0) * 100) / 100);
+
+        const envelopeView = computed(() => {
+          const cfg = envCfg.value, ym = selectedMonth.value;
+          const income = monthlySummary.value.totalIncome;
+          const spendIds = cfg.items.filter(i => i.kind === 'spend').map(i => i.id);
+          const envOf = (e) => (e.envelope && spendIds.includes(e.envelope)) ? e.envelope
+            : ((e.category === 'Giải trí' && spendIds.includes('fun')) ? 'fun' : spendIds[0]);
+          const ded = currentMonthDeductions.value.reduce((sum, d) => sum + Number(d.amount || 0), 0);
+          return cfg.items.map((it, idx) => {
+            const pct = pctAt(it, ym);
+            const alloc = Math.round(income * pct / 100);
+            const base = { ...it, pct, alloc, color: ENV_COLORS[idx % ENV_COLORS.length] };
+            if (it.kind === 'spend') {
+              const dedPart = cfg.deductionsIn === it.id ? ded : 0;
+              const spent = currentMonthExpenses.value.filter(e => envOf(e) === it.id).reduce((sum, e) => sum + Number(e.amount || 0), 0) + dedPart;
+              return { ...base, spent, dedPart, remaining: alloc - spent, usedPct: alloc > 0 ? Math.round(spent / alloc * 100) : (spent > 0 ? 100 : 0) };
+            }
+            const start = it.startMonth || firstIncomeMonth.value;
+            let accrued = 0, count = 0, transferredSum = 0;
+            for (let m = start, n = 0; monthToNum(m) <= monthToNum(ym) && n < 600; m = addMonthsToYM(m, 1), n++) {
+              const a = Math.round(incomeOfMonth(m) * pctAt(it, m) / 100);
+              accrued += a; count++;
+              if (it.transferred && it.transferred[m]) transferredSum += a;
+            }
+            const withdrawals = (it.withdrawals || []).slice().sort((a, b) => b.date.localeCompare(a.date));
+            const withdrawn = withdrawals.filter(w => w.date.slice(0, 7) <= ym).reduce((sum, w) => sum + Number(w.amount || 0), 0);
+            const balance = accrued - withdrawn;
+            const goalAmount = Number(it.goalAmount) || 0, goalMonths = Number(it.goalMonths) || 0;
+            let progress = 0, eta = '';
+            if (goalAmount > 0) {
+              progress = Math.min(100, Math.max(0, Math.round(balance / goalAmount * 100)));
+              if (balance < goalAmount && alloc > 0) eta = addMonthsToYM(ym, Math.ceil((goalAmount - balance) / alloc));
+            } else if (goalMonths > 0) {
+              progress = Math.min(100, Math.round(count / goalMonths * 100));
+              eta = addMonthsToYM(start, goalMonths - 1);
+            }
+            return { ...base, accrued, count, withdrawn, withdrawals, balance, transferredSum, isTransferred: !!(it.transferred && it.transferred[ym]),
+                     goalAmount, goalMonths, progress, eta, goalReached: (goalAmount > 0 && balance >= goalAmount) || (goalAmount <= 0 && goalMonths > 0 && count >= goalMonths) };
+          });
+        });
+
+        const showEnvModal = ref(false);
+        const envDraft = ref({ deductionsIn: '', items: [] });
+        const envDraftTotal = computed(() => Math.round(envDraft.value.items.reduce((sum, i) => sum + (Number(i.pct) || 0), 0) * 100) / 100);
+        const openEnvelopeSettings = () => {
+          const ym = selectedMonth.value;
+          const d = JSON.parse(JSON.stringify(envCfg.value));
+          d.items.forEach(it => { it.pct = pctAt(it, ym); });
+          envDraft.value = d;
+          showEnvModal.value = true;
+        };
+        const addEnvDraft = (kind) => {
+          const it = { id: 'env_' + Date.now(), name: '', pct: 0, kind };
+          if (kind === 'save') Object.assign(it, { goalAmount: 0, goalMonths: 0, transferred: {}, withdrawals: [] });
+          envDraft.value.items.push(it);
+        };
+        const removeEnvDraft = (i) => {
+          const it = envDraft.value.items[i];
+          if (envDraft.value.items.length <= 1) { showToast('Cần giữ lại ít nhất một quỹ', 'error'); return; }
+          if (it.kind === 'save' && !confirm('Xóa quỹ tiết kiệm sẽ mất luôn số tích lũy và lịch sử rút của nó. Vẫn xóa?')) return;
+          envDraft.value.items.splice(i, 1);
+          if (envDraft.value.deductionsIn === it.id) envDraft.value.deductionsIn = '';
+        };
+        const saveEnvelopeSettings = () => {
+          const d = envDraft.value, ym = selectedMonth.value;
+          if (d.items.some(i => !String(i.name).trim())) { showToast('Quỹ nào cũng cần có tên', 'error'); return; }
+          const old = {};
+          envCfg.value.items.forEach(i => { old[i.id] = i; });
+          const items = d.items.map(it => {
+            const pct = Number(it.pct) || 0, o = old[it.id];
+            const out = { ...it, name: String(it.name).trim() };
+            let h = o ? (o.pctHistory ? o.pctHistory.slice() : null) : null;
+            if (o && pctAt(o, ym) !== pct) {
+              if (!h) h = [{ from: '0000-00', pct: Number(o.pct) || 0 }];
+              h = h.filter(x => x.from !== ym).concat([{ from: ym, pct }]).sort((a, b) => a.from.localeCompare(b.from));
+            }
+            if (h) { out.pctHistory = h; out.pct = h[h.length - 1].pct; } else { out.pct = pct; delete out.pctHistory; }
+            return out;
+          });
+          envelopeCfg.value = { id: 'envelopes', deductionsIn: d.deductionsIn || '', items };
+          persistEnv();
+          showEnvModal.value = false;
+          showToast(envelopeTotalPct.value === 100 ? 'Đã lưu cách chia quỹ!' : `Đã lưu — hiện đang chia ${envelopeTotalPct.value}% (chưa đủ 100%)`);
+        };
+        const toggleTransferred = (id) => {
+          const it = ensureCfg().items.find(i => i.id === id);
+          if (!it) return;
+          it.transferred = it.transferred || {};
+          if (it.transferred[selectedMonth.value]) delete it.transferred[selectedMonth.value];
+          else it.transferred[selectedMonth.value] = true;
+          persistEnv();
+        };
+        const showWithdrawModal = ref(false);
+        const withdrawForm = ref({ envId: '', envName: '', amount: '', date: '', note: '' });
+        const openWithdraw = (e) => {
+          withdrawForm.value = { envId: e.id, envName: e.name, amount: '', date: new Date().toISOString().substring(0, 10), note: '' };
+          showWithdrawModal.value = true;
+        };
+        const saveWithdraw = () => {
+          const f = withdrawForm.value, amt = Number(f.amount);
+          if (!amt || amt <= 0) { showToast('Vui lòng nhập số tiền rút!', 'error'); return; }
+          const it = ensureCfg().items.find(i => i.id === f.envId);
+          if (!it) return;
+          it.withdrawals = it.withdrawals || [];
+          it.withdrawals.push({ id: 'wd_' + Date.now(), amount: amt, date: f.date, note: f.note || '' });
+          persistEnv();
+          showWithdrawModal.value = false;
+          showToast('Đã ghi nhận khoản rút từ ' + f.envName);
+        };
+        const deleteWithdraw = (envId, wid) => {
+          const it = ensureCfg().items.find(i => i.id === envId);
+          if (!it || !confirm('Xóa lần rút này? Số dư quỹ sẽ được cộng lại.')) return;
+          it.withdrawals = (it.withdrawals || []).filter(w => w.id !== wid);
+          persistEnv();
+        };
+
+        // Menu điện thoại: 3 tab chính + mục "Quản lý" gom Thu nhập / Trừ lương / Báo cáo
+        const showMoreMenu = ref(false);
+        const moreDesc = { incomes: 'Lương, thưởng, thu nhập khác', deductions: 'Tiền nhà, trả góp, khoản trừ cố định', reports: 'Tổng quan năm, sao lưu, tài khoản' };
+        const moreTabs = tabs.filter(t => moreDesc[t.id]).map(t => ({ ...t, desc: moreDesc[t.id] }));
+        const mainMobileTabs = tabs.filter(t => ['dashboard', 'expenses', 'envelopes'].includes(t.id));
+        const isMoreActive = computed(() => moreTabs.some(t => t.id === activeTab.value));
+        const goTab = (id) => { activeTab.value = id; showMoreMenu.value = false; window.scrollTo({ top: 0 }); };
+
+        // Tổng hợp tiền tiết kiệm (các quỹ loại "save")
+        const savingFunds = computed(() => envelopeView.value.filter(e => e.kind === 'save'));
+        const savingTotals = computed(() => {
+          const f = savingFunds.value;
+          const balance = f.reduce((a, e) => a + e.balance, 0);
+          const inBank = f.reduce((a, e) => a + e.transferredSum - e.withdrawn, 0);
+          const pending = f.reduce((a, e) => a + (e.accrued - e.transferredSum), 0);
+          return { balance, inBank, pending };
+        });
+
         const getPercent = (amount, total) => {
           if (!total || total <= 0) return 0;
           return Math.round((amount / total) * 100);
@@ -1710,7 +2073,7 @@
 
         const openExpenseModal = (item = null) => {
           if (item) {
-            expenseForm.value = { ...item };
+            expenseForm.value = { ...item, envelope: item.envelope || '' };
             modalExpenseFormattedAmount.value = new Intl.NumberFormat('vi-VN').format(item.amount);
             showExpenseModal.value = true;
           } else {
@@ -1731,6 +2094,7 @@
             localStorage.setItem(lsKey('incomes'), JSON.stringify(incomes.value));
             localStorage.setItem(lsKey('deductions'), JSON.stringify(deductions.value));
             localStorage.setItem(lsKey('expenses'), JSON.stringify(expenses.value));
+            localStorage.setItem(lsKey('envelopes'), JSON.stringify(envelopeCfg.value));
           } catch (e) {}
         };
         const plain = (o) => JSON.parse(JSON.stringify(o));
@@ -1757,6 +2121,7 @@
           incomes.value.forEach(i => syncItemToFirestore('incomes', i));
           deductions.value.forEach(d => syncItemToFirestore('deductions', d));
           expenses.value.forEach(e => syncItemToFirestore('expenses', e));
+          if (envelopeCfg.value) syncItemToFirestore('settings', envelopeCfg.value);
         };
 
         const authErrorText = (code) => ({
@@ -1793,7 +2158,7 @@
 
         const stopListening = () => { unsubs.forEach(u => u()); unsubs = []; };
         const logout = async () => {
-          ['incomes', 'deductions', 'expenses'].forEach(n => localStorage.removeItem(lsKey(n)));
+          ['incomes', 'deductions', 'expenses', 'envelopes'].forEach(n => localStorage.removeItem(lsKey(n)));
           stopListening();
           try { await window.FirebaseDB.signOut(authInstance); } catch (e) {}
         };
@@ -1816,6 +2181,12 @@
           const uid = currentUser.value.uid;
           const targets = { incomes, deductions, expenses };
           const serverEmpty = {};
+          try { const c = localStorage.getItem(lsKey('envelopes')); if (c) envelopeCfg.value = JSON.parse(c); } catch (e) {}
+          unsubs.push(onSnapshot(collection(dbInstance, 'users', uid, 'settings'), snap => {
+            const d = snap.docs.map(x => x.data()).find(x => x.id === 'envelopes');
+            envelopeCfg.value = d || null;
+            saveToLocalBackup();
+          }, err => console.warn('Settings snapshot error', err)));
           Object.entries(targets).forEach(([name, target]) => {
             try { const c = localStorage.getItem(lsKey(name)); if (c) target.value = JSON.parse(c); } catch (e) {}
             unsubs.push(onSnapshot(collection(dbInstance, 'users', uid, name), snap => {
@@ -1947,6 +2318,7 @@
             date: expenseForm.value.date,
             category: expenseForm.value.category,
             note: expenseForm.value.note || '',
+            envelope: expenseForm.value.envelope || '',
             createdAt: new Date().toISOString()
           };
 
@@ -1962,7 +2334,8 @@
             amount: 0,
             date: new Date().toISOString().substring(0, 10),
             category: 'Ăn uống',
-            note: ''
+            note: '',
+            envelope: ''
           };
           expenseFormFormattedAmount.value = '';
           showToast('Đã ghi nhận khoản chi tiêu!');
@@ -2089,6 +2462,7 @@
             incomes: incomes.value,
             deductions: deductions.value,
             expenses: expenses.value,
+            envelopes: envelopeCfg.value,
             exportedAt: new Date().toISOString()
           };
           const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -2113,6 +2487,7 @@
                 incomes.value = data.incomes;
                 deductions.value = data.deductions;
                 expenses.value = data.expenses;
+                if (data.envelopes) envelopeCfg.value = data.envelopes;
                 saveToLocalBackup();
                 pushAllToCloud();
                 showToast('Đã khôi phục dữ liệu từ JSON thành công!');
@@ -2230,6 +2605,7 @@
               if (li) incomes.value = JSON.parse(li);
               if (ld) deductions.value = JSON.parse(ld);
               if (le) expenses.value = JSON.parse(le);
+              const lenv = localStorage.getItem('vtc_envelopes'); if (lenv) envelopeCfg.value = JSON.parse(lenv);
               if (!li && !ld && !le) loadSampleData();
             } catch (e) { console.warn('LocalStorage error:', e); }
             authReady.value = true;
@@ -2260,7 +2636,7 @@
               stopListening();
               currentUser.value = user;
               if (user) { startListening(); }
-              else { incomes.value = []; deductions.value = []; expenses.value = []; }
+              else { incomes.value = []; deductions.value = []; expenses.value = []; envelopeCfg.value = null; }
               isSyncedFlag.value = !!user;
               authReady.value = true;
             });
@@ -2273,6 +2649,9 @@
         });
 
         return {
+          showMoreMenu, moreTabs, mainMobileTabs, isMoreActive, goTab, savingFunds, savingTotals,
+          envelopeView, envelopeTotalPct, spendEnvelopes, fmtYM, showEnvModal, envDraft, envDraftTotal, openEnvelopeSettings, addEnvDraft, removeEnvDraft,
+          saveEnvelopeSettings, toggleTransferred, showWithdrawModal, withdrawForm, openWithdraw, saveWithdraw, deleteWithdraw,
           activeTab, deductionSubTab, tabs, selectedMonth, selectedYear,
           formattedSelectedMonthLabel, changeMonth, resetToCurrentMonth,
           incomes, deductions, expenses, currentMonthIncomes, currentMonthDeductions,
