@@ -64,6 +64,7 @@
     @media (max-width: 767px) {
       input, select, textarea { font-size: 16px !important; }
     }
+    span[class*="rounded"] { white-space: nowrap; }
     /* Hộp thoại luôn cuộn được khi bàn phím mở */
     .fixed.inset-0.z-50 > div { max-height: 90dvh; overflow-y: auto; }
     /* Custom Scrollbar */
@@ -384,7 +385,7 @@
 
             <!-- Widget: Deductions Tracker checklist for Selected Month -->
             <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs lg:col-span-2 flex flex-col">
-              <div class="flex items-center justify-between mb-4">
+              <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-2 sm:gap-3 mb-4">
                 <div>
                   <h3 class="font-bold text-slate-900 text-base flex items-center gap-2">
                     <i class="fa-solid fa-list-check text-indigo-600"></i>
@@ -392,42 +393,31 @@
                   </h3>
                   <p class="text-xs text-slate-500">Đánh dấu các khoản đã trừ / đã đóng trong tháng</p>
                 </div>
-                <button @click="activeTab = 'deductions'" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
+                <button @click="activeTab = 'deductions'" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 shrink-0 whitespace-nowrap">
                   Quản lý khoản trừ <i class="fa-solid fa-arrow-right text-[10px]"></i>
                 </button>
               </div>
 
               <!-- Deductions Checklist -->
               <div v-if="currentMonthDeductions.length > 0" class="space-y-2.5 overflow-y-auto max-h-72 pr-1">
-                <div v-for="item in currentMonthDeductions" :key="item.id"
-                     class="flex items-center justify-between p-3.5 rounded-xl border border-slate-100 bg-slate-50/60 hover:bg-slate-50 transition">
-                  <div class="flex items-center gap-3">
-                    <button @click="toggleDeductionPaid(item.id)" 
-                            :class="['w-6 h-6 rounded-lg border flex items-center justify-center transition', isDeductionPaid(item.id) ? 'bg-emerald-600 border-emerald-600 text-white' : 'border-slate-300 bg-white text-transparent hover:border-emerald-500']">
-                      <i class="fa-solid fa-check text-xs"></i>
-                    </button>
-                    <div>
-                      <div class="font-semibold text-slate-800 text-sm flex items-center gap-2">
-                        <span :class="{'line-through text-slate-400': isDeductionPaid(item.id)}">{{ item.name }}</span>
-                        <span :class="['text-[10px] font-semibold px-2 py-0.5 rounded-full', item.type === 'fixed' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700']">
-                          {{ item.type === 'fixed' ? 'Cố định' : 'Có thời hạn' }}
-                        </span>
-                      </div>
-                      <div class="text-xs text-slate-500 mt-0.5">
-                        <template v-if="item.type === 'time_limited'">
-                          Kỳ {{ item.calcCurrentPeriod }} / {{ item.calcTotalMonths }} • Còn {{ item.calcRemainingMonths }} tháng (T{{ item.endMonth }})
-                        </template>
-                        <template v-else>
-                          Bắt đầu từ T{{ item.startMonth }}
-                        </template>
-                      </div>
+                <div v-for="item in currentMonthDeductions" :key="item.id" class="flex items-start gap-3 p-3.5 rounded-xl border border-slate-100 bg-slate-50/60 hover:bg-slate-50 transition">
+                  <button @click="toggleDeductionPaid(item.id)"
+                          :class="['w-6 h-6 mt-0.5 rounded-lg border flex items-center justify-center shrink-0 transition', isDeductionPaid(item.id) ? 'bg-emerald-600 border-emerald-600 text-white' : 'border-slate-300 bg-white text-transparent hover:border-emerald-500']">
+                    <i class="fa-solid fa-check text-xs"></i>
+                  </button>
+                  <div class="min-w-0 flex-1">
+                    <div class="flex items-start justify-between gap-2">
+                      <span :class="['font-semibold text-slate-800 text-sm break-words min-w-0', {'line-through text-slate-400': isDeductionPaid(item.id)}]">{{ item.name }}</span>
+                      <span class="font-bold text-slate-900 text-sm whitespace-nowrap shrink-0">{{ formatVND(item.amount) }}</span>
                     </div>
-                  </div>
-                  <div class="text-right">
-                    <div class="font-bold text-slate-900 text-sm">{{ formatVND(item.amount) }}</div>
-                    <span :class="['text-[11px] font-medium', isDeductionPaid(item.id) ? 'text-emerald-600' : 'text-amber-600']">
-                      {{ isDeductionPaid(item.id) ? 'Đã trừ' : 'Chưa trừ' }}
-                    </span>
+                    <div class="flex items-center justify-between gap-2 mt-1">
+                      <div class="text-xs text-slate-500 min-w-0 flex items-center flex-wrap gap-x-2 gap-y-1">
+                        <span :class="['text-[10px] font-semibold px-2 py-0.5 rounded-full', item.type === 'fixed' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700']">{{ item.type === 'fixed' ? 'Cố định' : 'Có thời hạn' }}</span>
+                        <span v-if="item.type === 'time_limited'">Kỳ {{ item.calcCurrentPeriod }}/{{ item.calcTotalMonths }} • Còn {{ item.calcRemainingMonths }} tháng</span>
+                        <span v-else>Từ T{{ item.startMonth }}</span>
+                      </div>
+                      <span :class="['text-[11px] font-medium whitespace-nowrap shrink-0', isDeductionPaid(item.id) ? 'text-emerald-600' : 'text-amber-600']">{{ isDeductionPaid(item.id) ? 'Đã trừ' : 'Chưa trừ' }}</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -453,7 +443,23 @@
               </button>
             </div>
 
-            <div v-if="currentMonthExpenses.length > 0" class="overflow-x-auto">
+            <div v-if="currentMonthExpenses.length > 0">
+              <div class="md:hidden space-y-2.5">
+                <div v-for="exp in currentMonthExpenses.slice(0, 5)" :key="exp.id" class="flex items-start gap-3 p-3 rounded-xl border border-slate-100 bg-white">
+                  <div class="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0"><i :class="getExpenseCategoryIcon(exp.category)"></i></div>
+                  <div class="min-w-0 flex-1">
+                    <div class="flex items-start justify-between gap-2">
+                      <div class="font-bold text-slate-900 text-sm break-words min-w-0">{{ exp.note || exp.category }}</div>
+                      <span class="font-extrabold text-rose-600 text-sm whitespace-nowrap shrink-0">-{{ formatVND(exp.amount) }}</span>
+                    </div>
+                    <div class="flex items-center flex-wrap gap-x-2 gap-y-1 mt-1.5">
+                      <span class="text-xs text-slate-500 font-medium">{{ exp.category }}</span>
+                      <span class="text-[11px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded">{{ formatDateVN(exp.date) }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="hidden md:block overflow-x-auto">
               <table class="w-full text-left text-sm text-slate-700">
                 <thead class="bg-slate-50 text-xs font-semibold uppercase text-slate-500 border-b border-slate-200">
                   <tr>
@@ -477,6 +483,7 @@
                   </tr>
                 </tbody>
               </table>
+              </div>
             </div>
             <div v-else class="text-center py-8 text-slate-500 text-sm">
               Chưa có khoản chi tiêu nào trong tháng này.
@@ -514,7 +521,7 @@
                     <i :class="getIncomeCategoryIcon(item.category)"></i>
                   </div>
                   <div>
-                    <div class="font-bold text-slate-900 text-base flex items-center gap-2">
+                    <div class="font-bold text-slate-900 text-base flex flex-wrap items-center gap-x-2 gap-y-1">
                       {{ item.category }}
                       <span class="text-xs font-normal text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
                         {{ formatDateVN(item.date) }}
@@ -570,18 +577,18 @@
           </div>
 
           <!-- Section Sub-Tabs: Active in month vs Expired/Completed -->
-          <div class="flex border-b border-slate-200 gap-6 text-sm font-semibold">
+          <div class="flex border-b border-slate-200 gap-6 text-sm font-semibold overflow-x-auto whitespace-nowrap">
             <button @click="deductionSubTab = 'active'" 
                     :class="['pb-3 transition relative', deductionSubTab === 'active' ? 'text-indigo-600 border-b-2 border-indigo-600 font-bold' : 'text-slate-500 hover:text-slate-800']">
-              Áp dụng tháng này ({{ currentMonthDeductions.length }})
+              Tháng này ({{ currentMonthDeductions.length }})
             </button>
             <button @click="deductionSubTab = 'completed'" 
                     :class="['pb-3 transition relative', deductionSubTab === 'completed' ? 'text-indigo-600 border-b-2 border-indigo-600 font-bold' : 'text-slate-500 hover:text-slate-800']">
-              Đã hoàn thành / Ngưng trừ ({{ expiredDeductions.length }})
+              Đã xong ({{ expiredDeductions.length }})
             </button>
             <button @click="deductionSubTab = 'all'" 
                     :class="['pb-3 transition relative', deductionSubTab === 'all' ? 'text-indigo-600 border-b-2 border-indigo-600 font-bold' : 'text-slate-500 hover:text-slate-800']">
-              Tất cả danh sách ({{ deductions.length }})
+              Tất cả ({{ deductions.length }})
             </button>
           </div>
 
@@ -787,13 +794,13 @@
               </h3>
 
               <!-- Search & Filter Controls -->
-              <div class="flex items-center gap-2 w-full sm:w-auto">
+              <div class="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
                 <div class="relative flex-1 sm:w-48">
                   <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-xs text-slate-400"></i>
                   <input type="text" v-model="expenseSearch" placeholder="Tìm chi tiêu..."
                          class="w-full bg-slate-50 border border-slate-200 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-800 outline-none focus:border-rose-500">
                 </div>
-                <select v-model="expenseCategoryFilter" class="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 outline-none">
+                <select v-model="expenseCategoryFilter" class="w-full sm:w-auto bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 outline-none">
                   <option value="">Tất cả danh mục</option>
                   <option v-for="cat in expenseCategories" :key="cat.name" :value="cat.name">{{ cat.name }}</option>
                 </select>
@@ -802,30 +809,25 @@
 
             <!-- Expense List Items -->
             <div v-if="filteredExpenses.length > 0" class="space-y-2.5">
-              <div v-for="exp in filteredExpenses" :key="exp.id" class="flex items-center justify-between p-3.5 rounded-xl border border-slate-100 hover:border-slate-300 transition bg-white">
-                <div class="flex items-center gap-3">
-                  <div class="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center text-lg shrink-0">
-                    <i :class="getExpenseCategoryIcon(exp.category)"></i>
-                  </div>
-                  <div>
-                    <div class="font-bold text-slate-900 text-sm flex items-center gap-2">
-                      {{ exp.note || exp.category }}
-                      <span class="text-[11px] font-normal text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
-                        {{ formatDateVN(exp.date) }}
-                      </span>
-                    </div>
-                    <span class="text-xs text-slate-500 font-medium">{{ exp.category }}</span>
-                  </div>
+              <div v-for="exp in filteredExpenses" :key="exp.id" class="flex items-start gap-3 p-3.5 rounded-xl border border-slate-100 hover:border-slate-300 transition bg-white">
+                <div class="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center text-lg shrink-0">
+                  <i :class="getExpenseCategoryIcon(exp.category)"></i>
                 </div>
-
-                <div class="flex items-center gap-3">
-                  <span class="font-extrabold text-rose-600 text-sm md:text-base">-{{ formatVND(exp.amount) }}</span>
-                  <button @click="openExpenseModal(exp)" class="text-slate-400 hover:text-slate-700 p-1">
-                    <i class="fa-solid fa-pen-to-square"></i>
-                  </button>
-                  <button @click="confirmDelete('expense', exp.id)" class="text-slate-400 hover:text-rose-600 p-1">
-                    <i class="fa-solid fa-trash-can"></i>
-                  </button>
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-start justify-between gap-2">
+                    <div class="font-bold text-slate-900 text-sm break-words min-w-0">{{ exp.note || exp.category }}</div>
+                    <span class="font-extrabold text-rose-600 text-sm md:text-base whitespace-nowrap shrink-0">-{{ formatVND(exp.amount) }}</span>
+                  </div>
+                  <div class="flex items-center justify-between gap-2 mt-1.5">
+                    <div class="flex items-center flex-wrap gap-x-2 gap-y-1 min-w-0">
+                      <span class="text-xs text-slate-500 font-medium">{{ exp.category }}</span>
+                      <span class="text-[11px] font-normal text-slate-500 bg-slate-100 px-2 py-0.5 rounded">{{ formatDateVN(exp.date) }}</span>
+                    </div>
+                    <div class="flex items-center shrink-0">
+                      <button @click="openExpenseModal(exp)" class="w-9 h-9 flex items-center justify-center text-slate-400 hover:text-slate-700"><i class="fa-solid fa-pen-to-square"></i></button>
+                      <button @click="confirmDelete('expense', exp.id)" class="w-9 h-9 flex items-center justify-center text-slate-400 hover:text-rose-600"><i class="fa-solid fa-trash-can"></i></button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -846,7 +848,22 @@
               Tổng Quan Tài Chính Năm {{ selectedYear }}
             </h3>
 
-            <div class="overflow-x-auto">
+            <div class="md:hidden space-y-2.5">
+              <div v-for="m in 12" :key="m" :class="['p-3 rounded-xl border bg-white', selectedMonth === selectedYear + '-' + String(m).padStart(2, '0') ? 'border-emerald-400' : 'border-slate-100']">
+                <div class="flex items-center justify-between gap-2">
+                  <span class="font-bold text-slate-800 text-sm">Tháng {{ String(m).padStart(2, '0') }}</span>
+                  <span :class="['font-extrabold text-sm whitespace-nowrap', getYearlyMonthSummary(m).remaining >= 0 ? 'text-emerald-700' : 'text-rose-600']">
+                    {{ formatVND(getYearlyMonthSummary(m).remaining) }}
+                  </span>
+                </div>
+                <div class="grid grid-cols-3 gap-2 mt-2 text-[11px] leading-tight">
+                  <div><div class="text-slate-400 uppercase">Thu nhập</div><div class="font-semibold text-emerald-600 break-words">{{ formatVND(getYearlyMonthSummary(m).income) }}</div></div>
+                  <div><div class="text-slate-400 uppercase">Trừ lương</div><div class="font-semibold text-indigo-600 break-words">{{ formatVND(getYearlyMonthSummary(m).deduction) }}</div></div>
+                  <div><div class="text-slate-400 uppercase">Chi tiêu</div><div class="font-semibold text-rose-600 break-words">{{ formatVND(getYearlyMonthSummary(m).expense) }}</div></div>
+                </div>
+              </div>
+            </div>
+            <div class="hidden md:block overflow-x-auto">
               <table class="w-full text-left text-xs md:text-sm text-slate-700">
                 <thead class="bg-slate-50 text-slate-500 uppercase border-b border-slate-200">
                   <tr>
@@ -870,6 +887,16 @@
                 </tbody>
               </table>
             </div>
+          </div>
+
+          <div v-if="currentUser" class="md:hidden bg-white rounded-2xl border border-slate-200/80 shadow-xs p-4 flex items-center justify-between gap-3">
+            <div class="min-w-0">
+              <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Tài khoản</div>
+              <div class="font-bold text-slate-800 text-sm truncate">{{ authName }}</div>
+            </div>
+            <button @click="logout" class="shrink-0 px-4 py-2 rounded-xl text-xs font-bold bg-rose-50 text-rose-700 hover:bg-rose-100">
+              <i class="fa-solid fa-right-from-bracket mr-1"></i> Đăng xuất
+            </button>
           </div>
 
           <!-- Data Backup & CSV Export Card -->
@@ -984,7 +1011,7 @@
           </div>
 
           <!-- Date & Category -->
-          <div class="grid grid-cols-2 gap-3">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label class="block text-xs font-semibold text-slate-700 mb-1">Ngày nhận</label>
               <input type="date" v-model="incomeForm.date" required
@@ -1081,7 +1108,7 @@
           </div>
 
           <!-- Start Month -->
-          <div class="grid grid-cols-2 gap-3">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label class="block text-xs font-semibold text-slate-700 mb-1">Tháng bắt đầu trừ</label>
               <input type="month" v-model="deductionForm.startMonth" required @change="recalculateDeductionTerm"
@@ -1182,7 +1209,7 @@
             </div>
           </div>
 
-          <div class="grid grid-cols-2 gap-3">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label class="block text-xs font-semibold text-slate-700 mb-1">Ngày chi</label>
               <input type="date" v-model="expenseForm.date" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 font-medium outline-none">
