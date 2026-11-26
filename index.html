@@ -353,30 +353,25 @@
             </button>
           </div>
 
-          <!-- TIỀN TIẾT KIỆM ĐÃ TÍCH LŨY -->
-          <div v-if="savingFunds.length" class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs">
+          <!-- TIỀN TIẾT KIỆM -->
+          <div v-if="savingsView.length" class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs">
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0">
-                <h3 class="font-bold text-slate-900 text-base"><i class="fa-solid fa-piggy-bank text-indigo-600 mr-2"></i>Tiền Tiết Kiệm Đã Tích Lũy</h3>
+                <h3 class="font-bold text-slate-900 text-base"><i class="fa-solid fa-piggy-bank text-indigo-600 mr-2"></i>Tiền Tiết Kiệm</h3>
                 <p class="text-xs text-slate-500 mt-0.5">Tính đến hết tháng {{ formattedSelectedMonthLabel }}</p>
               </div>
-              <button @click="activeTab = 'envelopes'" class="shrink-0 text-xs font-semibold text-indigo-600 hover:text-indigo-800 whitespace-nowrap">Chi tiết <i class="fa-solid fa-arrow-right text-[10px]"></i></button>
+              <button @click="activeTab = 'savings'" class="shrink-0 text-xs font-semibold text-indigo-600 hover:text-indigo-800 whitespace-nowrap">Chi tiết <i class="fa-solid fa-arrow-right text-[10px]"></i></button>
             </div>
-            <div class="mt-3 text-3xl font-extrabold text-indigo-700 break-words">{{ formatVND(savingTotals.balance) }}</div>
-            <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 mt-1 text-xs">
-              <span class="text-slate-500">Đã chuyển vào sổ: <b class="text-slate-700">{{ formatVND(savingTotals.inBank) }}</b></span>
-              <span :class="savingTotals.pending > 0 ? 'text-amber-600 font-semibold' : 'text-emerald-600 font-semibold'">{{ savingTotals.pending > 0 ? 'Chưa chuyển ' + formatVND(savingTotals.pending) : 'Đã chuyển đủ' }}</span>
-            </div>
+            <div class="mt-3 text-3xl font-extrabold text-indigo-700 break-words">{{ formatVND(savingsTotal) }}</div>
             <div class="mt-4 space-y-3">
-              <div v-for="e in savingFunds" :key="e.id">
+              <div v-for="a in savingsView" :key="a.id">
                 <div class="flex items-center justify-between gap-2 text-sm">
-                  <span class="font-semibold text-slate-700 min-w-0 break-words"><i class="inline-block w-2 h-2 rounded-full mr-1.5" :style="{ background: e.color }"></i>{{ e.name }}</span>
-                  <span class="font-bold text-slate-900 whitespace-nowrap">{{ formatVND(e.balance) }}</span>
+                  <span class="font-semibold text-slate-700 min-w-0 break-words"><i class="inline-block w-2 h-2 rounded-full mr-1.5" :style="{ background: a.color }"></i>{{ a.name }}</span>
+                  <span class="font-bold text-slate-900 whitespace-nowrap">{{ formatVND(a.balance) }}</span>
                 </div>
-                <div v-if="e.goalAmount > 0 || e.goalMonths > 0" class="h-1.5 rounded-full bg-slate-100 overflow-hidden mt-1.5"><div class="h-full rounded-full" :style="{ width: e.progress + '%', background: e.color }"></div></div>
+                <div v-if="a.goal > 0" class="h-1.5 rounded-full bg-slate-100 overflow-hidden mt-1.5"><div class="h-full rounded-full" :style="{ width: a.progress + '%', background: a.color }"></div></div>
               </div>
             </div>
-            <p class="text-[11px] text-slate-400 mt-3">Số tiền gốc theo kế hoạch, chưa gồm tiền lãi của ngân hàng.</p>
           </div>
 
           <!-- CHARTS & SUMMARY SECTION -->
@@ -800,14 +795,6 @@
                 </div>
               </div>
 
-                <div v-if="spendEnvelopes.length > 1">
-                  <label class="block text-xs font-semibold text-slate-600 mb-1">Quỹ</label>
-                  <select v-model="expenseForm.envelope" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 font-medium text-slate-800 text-sm outline-none">
-                    <option value="">Tự động</option>
-                    <option v-for="e in spendEnvelopes" :key="e.id" :value="e.id">{{ e.name }}</option>
-                  </select>
-                </div>
-
               <!-- Note & Submit -->
               <div class="flex flex-col sm:flex-row gap-3">
                 <input type="text" v-model="expenseForm.note" placeholder="Ghi chú chi tiết (ví dụ: Ăn trưa bún bò, Đổ xăng 50k...)"
@@ -873,91 +860,65 @@
         </div>
 
         <!-- ==================== TAB 5: BÁO CÁO & DATA ==================== -->
-        <div v-if="activeTab === 'envelopes'" class="space-y-6">
-          <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs">
-            <div class="flex items-start justify-between gap-3">
-              <div class="min-w-0">
-                <h3 class="font-bold text-slate-900 text-base"><i class="fa-solid fa-envelope-open-text text-emerald-600 mr-2"></i>Chia Quỹ Tháng {{ formattedSelectedMonthLabel }}</h3>
-                <p v-if="savingFunds.length" class="text-xs text-slate-500 mt-1">Tổng tiết kiệm đã tích lũy: <b class="text-indigo-700">{{ formatVND(savingTotals.balance) }}</b></p>
-              </div>
-              <button @click="openEnvelopeSettings" class="shrink-0 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3 py-2 rounded-lg transition"><i class="fa-solid fa-sliders mr-1"></i>Chia lại quỹ</button>
-            </div>
-            <div class="mt-4 rounded-xl bg-slate-50 border border-slate-100 p-3 text-xs space-y-1.5">
-              <div class="flex justify-between gap-2"><span class="text-slate-500">Thu nhập tháng này</span><b class="text-slate-800 whitespace-nowrap">{{ formatVND(envelopeBasis.income) }}</b></div>
-              <template v-if="envelopeBasis.base === 'afterDeductions'">
-                <div class="flex justify-between gap-2"><span class="text-slate-500">Trừ lương cố định (nợ, bảo hiểm...)</span><b class="text-indigo-600 whitespace-nowrap">-{{ formatVND(envelopeBasis.ded) }}</b></div>
-                <div class="flex justify-between gap-2 pt-1.5 border-t border-slate-200"><span class="font-semibold text-slate-700">Phần chia vào các quỹ</span><b class="text-emerald-700 whitespace-nowrap">{{ formatVND(envelopeBasis.pool) }}</b></div>
-              </template>
-            </div>
-            <div class="flex h-3 rounded-full overflow-hidden mt-4 bg-slate-100">
-              <div v-for="e in envelopeView" :key="e.id" :style="{ width: Math.min(e.pct, 100) + '%', background: e.color }"></div>
-            </div>
-            <div class="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-[11px] text-slate-600">
-              <span v-for="e in envelopeView" :key="e.id"><i class="inline-block w-2 h-2 rounded-full mr-1" :style="{ background: e.color }"></i>{{ e.name }} {{ e.pct }}%</span>
-            </div>
-            <p v-if="envelopeBasis.income > 0 && envelopeBasis.pool === 0" class="mt-3 text-xs rounded-lg px-3 py-2 bg-rose-50 text-rose-700 border border-rose-100">Khoản trừ lương đã bằng hoặc vượt thu nhập tháng này nên chưa có tiền để chia vào quỹ.</p>
-            <p v-else-if="envelopeBasis.pool > 0 && envelopeTotalPct !== 100" class="mt-3 text-xs rounded-lg px-3 py-2 bg-amber-50 text-amber-800 border border-amber-100">
-              {{ envelopeTotalPct < 100 ? 'Đang chia ' + envelopeTotalPct + '% — còn ' + Math.round((100 - envelopeTotalPct) * 10) / 10 + '% chưa vào quỹ nào.' : 'Đang chia ' + envelopeTotalPct + '% — các quỹ cộng lại vượt ' + Math.round((envelopeTotalPct - 100) * 10) / 10 + '% so với số tiền có để chia.' }}
-            </p>
+        <div v-if="activeTab === 'savings'" class="space-y-6">
+          <div class="rounded-2xl p-5 bg-gradient-to-br from-indigo-700 to-violet-600 text-white shadow-md">
+            <div class="text-xs uppercase tracking-wider text-indigo-100 font-semibold">Tổng tiền tiết kiệm</div>
+            <div class="text-3xl font-extrabold mt-1 break-words">{{ formatVND(savingsTotal) }}</div>
+            <div class="text-xs text-indigo-100 mt-1">Tính đến hết tháng {{ formattedSelectedMonthLabel }}</div>
+            <button @click="openSavingModal()" class="mt-4 w-full bg-white text-indigo-700 font-bold text-sm py-2.5 rounded-xl hover:bg-indigo-50 transition"><i class="fa-solid fa-plus mr-1.5"></i>Thêm khoản tiết kiệm</button>
+          </div>
+
+          <div v-if="unassignedSavingDeds.length" class="rounded-xl bg-amber-50 border border-amber-100 p-3 text-xs text-amber-800 leading-relaxed">
+            Có {{ unassignedSavingDeds.length }} khoản trừ lương thuộc danh mục Tiết kiệm nhưng chưa chọn khoản tiết kiệm: <b>{{ unassignedSavingDeds.map(d => d.name).join(', ') }}</b>. Vào mục Trừ lương, sửa khoản đó để chọn, tiền mới được cộng vào.
+          </div>
+
+          <div v-if="!savingsView.length" class="bg-white rounded-2xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500 leading-relaxed">
+            Chưa có khoản tiết kiệm nào.<br>Bấm <b>Thêm khoản tiết kiệm</b> để đặt tên (ví dụ: Tiết kiệm cưới, Mua xe...).<br>
+            Tiền vào bằng 2 cách: khoản trừ lương thuộc danh mục <b>Tiết kiệm</b> (khi bấm đã trừ), hoặc <b>gửi thêm</b> từ tiền còn lại mỗi tháng trong mục Báo cáo.
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div v-for="e in envelopeView" :key="e.id" class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs">
+            <div v-for="a in savingsView" :key="a.id" class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs">
               <div class="flex items-start justify-between gap-3">
                 <div class="flex items-center gap-2.5 min-w-0">
-                  <span class="w-2.5 h-9 rounded-full shrink-0" :style="{ background: e.color }"></span>
-                  <div class="min-w-0">
-                    <div class="font-bold text-slate-900 text-sm break-words">{{ e.name }}</div>
-                    <div class="text-xs text-slate-500">{{ e.label }} • {{ e.kind === 'save' ? 'tiết kiệm (khóa)' : 'chi tiêu' }}</div>
-                  </div>
+                  <span class="w-2.5 h-9 rounded-full shrink-0" :style="{ background: a.color }"></span>
+                  <div class="font-bold text-slate-900 text-sm break-words min-w-0">{{ a.name }}</div>
                 </div>
-                <div class="text-right shrink-0">
-                  <div class="text-[11px] text-slate-400 uppercase">{{ e.kind === 'save' ? 'Dành tháng này' : 'Hạn mức' }}</div>
-                  <div class="font-bold text-slate-900 text-sm whitespace-nowrap">{{ formatVND(e.alloc) }}</div>
+                <div class="flex items-center shrink-0">
+                  <button @click="openSavingModal(a)" class="w-9 h-9 flex items-center justify-center text-slate-400 hover:text-slate-700"><i class="fa-solid fa-pen-to-square"></i></button>
+                  <button @click="deleteSaving(a.id)" class="w-9 h-9 flex items-center justify-center text-slate-400 hover:text-rose-600"><i class="fa-solid fa-trash-can"></i></button>
                 </div>
               </div>
-
-              <template v-if="e.kind === 'spend'">
-                <div class="h-2.5 rounded-full bg-slate-100 overflow-hidden mt-4">
-                  <div class="h-full rounded-full transition-all" :style="{ width: Math.min(e.usedPct, 100) + '%', background: e.usedPct >= 100 ? '#f43f5e' : (e.usedPct >= 80 ? '#f59e0b' : e.color) }"></div>
+              <div class="mt-3">
+                <div class="text-[11px] text-slate-400 uppercase">Đã tiết kiệm</div>
+                <div class="text-2xl font-extrabold break-words" :style="{ color: a.color }">{{ formatVND(a.balance) }}</div>
+                <div class="text-xs text-slate-500 mt-0.5">
+                  <span v-if="a.fromDed > 0">Từ trừ lương {{ formatVND(a.fromDed) }}</span><span v-if="a.fromDed > 0 && a.fromManual > 0"> • </span><span v-if="a.fromManual > 0">Gửi thêm {{ formatVND(a.fromManual) }}</span><span v-if="a.withdrawn > 0"> • Đã rút {{ formatVND(a.withdrawn) }}</span>
                 </div>
-                <div class="flex items-center justify-between gap-2 mt-2 text-xs">
-                  <span class="text-slate-500">Đã dùng {{ formatVND(e.spent) }} ({{ e.usedPct }}%)</span>
-                  <span :class="['font-semibold whitespace-nowrap', e.remaining >= 0 ? 'text-emerald-700' : 'text-rose-600']">{{ e.remaining >= 0 ? 'Còn ' + formatVND(e.remaining) : 'Vượt ' + formatVND(-e.remaining) }}</span>
+              </div>
+              <div v-if="a.goal > 0" class="mt-3">
+                <div class="h-2.5 rounded-full bg-slate-100 overflow-hidden"><div class="h-full rounded-full transition-all" :style="{ width: a.progress + '%', background: a.color }"></div></div>
+                <div class="flex items-center justify-between gap-2 mt-1.5 text-xs">
+                  <span class="text-slate-500">{{ formatVND(a.balance) }} / {{ formatVND(a.goal) }} ({{ a.progress }}%)</span>
+                  <span v-if="a.reached" class="font-semibold text-emerald-700 whitespace-nowrap">Đã đạt mục tiêu</span>
+                  <span v-else class="text-slate-500 whitespace-nowrap">Còn thiếu {{ formatVND(a.goal - a.balance) }}</span>
                 </div>
-                <p v-if="e.dedPart > 0" class="text-[11px] text-slate-400 mt-1">Đã gồm {{ formatVND(e.dedPart) }} khoản trừ lương</p>
-              </template>
-
-              <template v-else>
-                <div class="mt-4">
-                  <div class="text-[11px] text-slate-400 uppercase">Đã tích lũy</div>
-                  <div class="text-2xl font-extrabold break-words" :style="{ color: e.color }">{{ formatVND(e.balance) }}</div>
-                  <div class="text-xs text-slate-500">{{ e.count }} tháng<span v-if="e.withdrawn > 0"> • đã rút {{ formatVND(e.withdrawn) }}</span></div>
+              </div>
+              <div class="grid grid-cols-2 gap-2 mt-4">
+                <button @click="openDeposit(a.id)" class="py-2 rounded-xl text-xs font-semibold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition"><i class="fa-solid fa-circle-plus mr-1"></i>Gửi thêm</button>
+                <button @click="openWithdraw(a)" class="py-2 rounded-xl text-xs font-semibold border border-slate-200 text-slate-600 hover:bg-slate-50 transition"><i class="fa-solid fa-hand-holding-dollar mr-1"></i>Rút tiền</button>
+              </div>
+              <div v-if="a.history.length" class="mt-4 pt-3 border-t border-slate-100 space-y-1.5">
+                <div v-for="h in (expandedSaving[a.id] ? a.history : a.history.slice(0, 5))" :key="h.id" class="flex items-center justify-between gap-2 text-[11px]">
+                  <span class="min-w-0 text-slate-500 truncate"><span class="text-slate-400">{{ h.when }}</span> • {{ h.text }}</span>
+                  <span class="flex items-center gap-1 shrink-0">
+                    <b :class="h.amount >= 0 ? 'text-emerald-600' : 'text-rose-600'">{{ h.amount >= 0 ? '+' : '-' }}{{ formatVND(Math.abs(h.amount)) }}</b>
+                    <button v-if="h.kind !== 'deduction'" @click="deleteSavingEntry(a.id, h)" class="w-6 h-6 text-slate-300 hover:text-rose-600"><i class="fa-solid fa-xmark"></i></button>
+                    <span v-else class="w-6"></span>
+                  </span>
                 </div>
-                <div v-if="e.goalAmount > 0 || e.goalMonths > 0" class="mt-3">
-                  <div class="h-2.5 rounded-full bg-slate-100 overflow-hidden"><div class="h-full rounded-full transition-all" :style="{ width: e.progress + '%', background: e.color }"></div></div>
-                  <div class="flex items-center justify-between gap-2 mt-1.5 text-xs">
-                    <span class="text-slate-500">{{ e.goalAmount > 0 ? formatVND(e.balance) + ' / ' + formatVND(e.goalAmount) : 'Tháng ' + Math.min(e.count, e.goalMonths) + ' / ' + e.goalMonths }} ({{ e.progress }}%)</span>
-                    <span v-if="e.goalReached" class="font-semibold text-emerald-700 whitespace-nowrap">Đã đạt mục tiêu</span>
-                    <span v-else-if="e.eta" class="text-slate-500 whitespace-nowrap">Dự kiến đủ T{{ fmtYM(e.eta) }}</span>
-                  </div>
-                </div>
-                <label class="flex items-start gap-2.5 mt-4 p-3 rounded-xl bg-slate-50 border border-slate-100 cursor-pointer">
-                  <input type="checkbox" :checked="e.isTransferred" @change="toggleTransferred(e.id)" class="mt-0.5 w-4 h-4 accent-emerald-600 shrink-0">
-                  <span class="text-xs text-slate-700 leading-relaxed">Đã chuyển phần tháng này (<b>{{ formatVND(e.alloc) }}</b>) vào sổ / tài khoản riêng</span>
-                </label>
-                <div class="flex items-center justify-between gap-2 mt-2 text-[11px]">
-                  <span class="text-slate-500">Đã chuyển thực tế: {{ formatVND(e.transferredSum) }}</span>
-                  <span :class="e.accrued - e.transferredSum > 0 ? 'text-amber-600 font-semibold' : 'text-emerald-600 font-semibold'">{{ e.accrued - e.transferredSum > 0 ? 'Chưa chuyển ' + formatVND(e.accrued - e.transferredSum) : 'Đã chuyển đủ' }}</span>
-                </div>
-                <button @click="openWithdraw(e)" class="mt-3 w-full py-2 rounded-xl text-xs font-semibold border border-slate-200 text-slate-600 hover:bg-slate-50 transition"><i class="fa-solid fa-hand-holding-dollar mr-1"></i>Rút tiền từ quỹ này</button>
-                <div v-if="e.withdrawals.length" class="mt-3 space-y-1.5">
-                  <div v-for="w in e.withdrawals.slice(0, 3)" :key="w.id" class="flex items-center justify-between gap-2 text-[11px] text-slate-500">
-                    <span class="min-w-0 truncate">{{ w.date.slice(8, 10) }}/{{ w.date.slice(5, 7) }}/{{ w.date.slice(0, 4) }} • {{ w.note || 'Rút tiền' }}</span>
-                    <span class="flex items-center gap-1 shrink-0"><b class="text-rose-600">-{{ formatVND(w.amount) }}</b><button @click="deleteWithdraw(e.id, w.id)" class="w-6 h-6 text-slate-300 hover:text-rose-600"><i class="fa-solid fa-xmark"></i></button></span>
-                  </div>
-                </div>
-              </template>
+                <button v-if="a.history.length > 5" @click="expandedSaving[a.id] = !expandedSaving[a.id]" class="text-[11px] font-semibold text-indigo-600">{{ expandedSaving[a.id] ? 'Thu gọn' : 'Xem tất cả (' + a.history.length + ')' }}</button>
+              </div>
             </div>
           </div>
         </div>
@@ -984,6 +945,13 @@
                   <div><div class="text-slate-400 uppercase">Trừ lương</div><div class="font-semibold text-indigo-600 break-words">{{ formatVND(getYearlyMonthSummary(m).deduction) }}</div></div>
                   <div><div class="text-slate-400 uppercase">Chi tiêu</div><div class="font-semibold text-rose-600 break-words">{{ formatVND(getYearlyMonthSummary(m).expense) }}</div></div>
                 </div>
+                <div class="flex items-center justify-between gap-2 mt-2.5 pt-2.5 border-t border-slate-100">
+                  <span class="text-[11px] text-slate-500">
+                    <template v-if="depositedInMonth(selectedYear + '-' + String(m).padStart(2, '0')) > 0">Đã gửi tiết kiệm: <b class="text-indigo-600">{{ formatVND(depositedInMonth(selectedYear + '-' + String(m).padStart(2, '0'))) }}</b></template>
+                    <template v-else>Chưa gửi tiết kiệm</template>
+                  </span>
+                  <button @click="openDepositForMonth(m)" class="shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-semibold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 whitespace-nowrap">+ Gửi tiết kiệm</button>
+                </div>
               </div>
             </div>
             <div class="hidden md:block overflow-x-auto">
@@ -995,6 +963,7 @@
                     <th class="py-2.5 px-3 text-indigo-700">Trừ lương</th>
                     <th class="py-2.5 px-3 text-rose-700">Chi tiêu</th>
                     <th class="py-2.5 px-3 text-right">Tích lũy còn lại</th>
+                    <th class="py-2.5 px-3 text-right text-indigo-700">Gửi tiết kiệm</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 font-medium">
@@ -1005,6 +974,12 @@
                     <td class="py-2.5 px-3 text-rose-600 font-semibold">{{ formatVND(getYearlyMonthSummary(m).expense) }}</td>
                     <td :class="['py-2.5 px-3 text-right font-extrabold', getYearlyMonthSummary(m).remaining >= 0 ? 'text-emerald-700' : 'text-rose-600']">
                       {{ formatVND(getYearlyMonthSummary(m).remaining) }}
+                    </td>
+                    <td class="py-2 px-3 text-right">
+                      <div class="flex items-center justify-end gap-2">
+                        <span v-if="depositedInMonth(selectedYear + '-' + String(m).padStart(2, '0')) > 0" class="text-indigo-600 font-semibold whitespace-nowrap">{{ formatVND(depositedInMonth(selectedYear + '-' + String(m).padStart(2, '0'))) }}</span>
+                        <button @click="openDepositForMonth(m)" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 whitespace-nowrap">+ Gửi</button>
+                      </div>
                     </td>
                   </tr>
                 </tbody>
@@ -1301,6 +1276,17 @@
             </select>
           </div>
 
+          <div v-if="isSavingCat(deductionForm.category)" class="rounded-xl bg-indigo-50 border border-indigo-100 p-3 space-y-2">
+            <label class="block text-xs font-semibold text-indigo-900">Tiền này chuyển vào khoản tiết kiệm nào?</label>
+            <select v-model="deductionForm.savingId" class="w-full bg-white border border-indigo-200 rounded-lg px-3 py-2 text-sm text-slate-800 font-medium outline-none">
+              <option value="">— Chọn khoản tiết kiệm —</option>
+              <option v-for="a in savings" :key="a.id" :value="a.id">{{ a.name }}</option>
+              <option value="__new__">+ Tạo khoản tiết kiệm mới...</option>
+            </select>
+            <input v-if="deductionForm.savingId === '__new__'" v-model="deductionForm.newSavingName" type="text" placeholder="Tên khoản tiết kiệm (ví dụ: Tiết kiệm cưới)" class="w-full bg-white border border-indigo-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500">
+            <p class="text-[11px] text-indigo-700 leading-relaxed">Mỗi tháng bạn bấm "đánh dấu trừ" cho khoản này, số tiền tự cộng vào khoản tiết kiệm đó. Bỏ đánh dấu thì số tiền được rút lại.</p>
+          </div>
+
           <!-- Note -->
           <div>
             <label class="block text-xs font-semibold text-slate-700 mb-1">Ghi chú</label>
@@ -1356,13 +1342,6 @@
               </select>
             </div>
           </div>
-          <div v-if="spendEnvelopes.length > 1">
-            <label class="block text-xs font-semibold text-slate-700 mb-1">Quỹ</label>
-            <select v-model="expenseForm.envelope" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 font-medium outline-none">
-              <option value="">Tự động</option>
-              <option v-for="e in spendEnvelopes" :key="e.id" :value="e.id">{{ e.name }}</option>
-            </select>
-          </div>
 
           <div>
             <label class="block text-xs font-semibold text-slate-700 mb-1">Ghi chú</label>
@@ -1404,79 +1383,65 @@
     </div>
 
     <!-- MODAL 5: DATA BACKUP & RESTORE DIALOG -->
-    <!-- MODAL: CHIA QUỸ -->
-  <div v-if="showEnvModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60">
-    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-5 space-y-4">
+    <!-- MODAL: KHOẢN TIẾT KIỆM -->
+  <div v-if="showSavingModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-5 space-y-4">
       <div class="flex items-center justify-between gap-3">
-        <h3 class="font-bold text-slate-900 text-base"><i class="fa-solid fa-sliders text-emerald-600 mr-2"></i>Chia quỹ</h3>
-        <button @click="showEnvModal = false" class="text-slate-400 hover:text-slate-700 w-8 h-8"><i class="fa-solid fa-xmark"></i></button>
+        <h3 class="font-bold text-slate-900 text-base"><i class="fa-solid fa-piggy-bank text-indigo-600 mr-2"></i>{{ savingForm.id ? 'Sửa khoản tiết kiệm' : 'Thêm khoản tiết kiệm' }}</h3>
+        <button @click="showSavingModal = false" class="text-slate-400 hover:text-slate-700 w-8 h-8"><i class="fa-solid fa-xmark"></i></button>
       </div>
-
-      <div class="space-y-2">
-        <label :class="['flex items-start gap-2.5 p-3 rounded-xl border cursor-pointer', envDraft.base === 'afterDeductions' ? 'border-emerald-400 bg-emerald-50' : 'border-slate-200']">
-          <input type="radio" value="afterDeductions" v-model="envDraft.base" class="mt-0.5 accent-emerald-600 shrink-0">
-          <span class="text-xs text-slate-700 leading-relaxed"><b>Trừ khoản trừ lương trước, chia phần còn lại</b> (khuyên dùng)<span class="block text-slate-500">Tiền nhà, trả nợ, bảo hiểm... trừ ra trước. Phần còn lại mới chia vào các quỹ.</span></span>
-        </label>
-        <label :class="['flex items-start gap-2.5 p-3 rounded-xl border cursor-pointer', envDraft.base === 'income' ? 'border-emerald-400 bg-emerald-50' : 'border-slate-200']">
-          <input type="radio" value="income" v-model="envDraft.base" class="mt-0.5 accent-emerald-600 shrink-0">
-          <span class="text-xs text-slate-700 leading-relaxed min-w-0"><b>Chia theo toàn bộ thu nhập</b><span class="block text-slate-500">Khoản trừ lương sẽ nằm trong một quỹ chi tiêu bạn chọn.</span>
-            <select v-if="envDraft.base === 'income'" v-model="envDraft.deductionsIn" class="mt-2 w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 text-xs outline-none">
-              <option value="">Không tính vào quỹ nào</option>
-              <option v-for="it in envDraft.items.filter(x => x.kind === 'spend')" :key="it.id" :value="it.id">{{ it.name || '(chưa đặt tên)' }}</option>
-            </select>
-          </span>
-        </label>
-        <p class="text-[11px] text-slate-400">Đổi cách tính này áp dụng cho cả các tháng trước.</p>
-      </div>
-
-      <p class="text-xs text-slate-500">Mỗi quỹ chia theo <b>%</b> hoặc <b>số tiền cố định (₫)</b>. Đổi ở tháng nào thì áp dụng từ tháng đó trở đi.</p>
-      <div class="space-y-3">
-        <div v-for="(it, i) in envDraft.items" :key="it.id" class="rounded-xl border border-slate-200 p-3 space-y-2">
-          <div class="flex items-center gap-2">
-            <input v-model="it.name" type="text" placeholder="Tên quỹ" class="flex-1 min-w-0 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium outline-none focus:border-emerald-500">
-            <button @click="removeEnvDraft(i)" class="w-8 h-8 shrink-0 text-slate-400 hover:text-rose-600"><i class="fa-solid fa-trash-can"></i></button>
-          </div>
-          <div class="flex items-center gap-2">
-            <div class="flex shrink-0 rounded-lg border border-slate-200 overflow-hidden text-sm font-bold">
-              <button type="button" @click="setEnvMode(it, 'pct')" :class="['px-3.5 py-2', it.mode !== 'amount' ? 'bg-emerald-600 text-white' : 'bg-white text-slate-500']">%</button>
-              <button type="button" @click="setEnvMode(it, 'amount')" :class="['px-3.5 py-2', it.mode === 'amount' ? 'bg-emerald-600 text-white' : 'bg-white text-slate-500']">₫</button>
-            </div>
-            <input v-if="it.mode !== 'amount'" v-model.number="it.value" type="number" min="0" step="1" inputmode="decimal" class="flex-1 min-w-0 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-right outline-none focus:border-emerald-500">
-            <input v-else type="text" inputmode="numeric" placeholder="0" :value="fmtNum(it.value)" @input="onMoneyInput(it, 'value', $event)" class="flex-1 min-w-0 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-right outline-none focus:border-emerald-500">
-          </div>
-          <div class="text-[11px] text-emerald-700 font-medium">≈ {{ it.mode === 'amount' ? draftPct(it) + '% số tiền đem chia' : formatVND(draftAlloc(it)) + ' mỗi tháng' }} <span class="text-slate-400 font-normal">(theo tháng đang xem)</span></div>
-          <div class="text-[11px] text-slate-500">{{ it.kind === 'save' ? 'Tiết kiệm — bị khóa, chỉ rút khi bạn ghi "Rút tiền"' : 'Chi tiêu — bị trừ dần khi bạn ghi chi tiêu' }}</div>
-          <div v-if="it.kind === 'save'" class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <div><label class="block text-[11px] font-semibold text-slate-600 mb-1">Mục tiêu số tiền (tùy chọn)</label><input type="text" inputmode="numeric" placeholder="0" :value="fmtNum(it.goalAmount)" @input="onMoneyInput(it, 'goalAmount', $event)" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-emerald-500"></div>
-            <div><label class="block text-[11px] font-semibold text-slate-600 mb-1">Hoặc mục tiêu số tháng</label><input v-model.number="it.goalMonths" type="number" min="0" step="1" inputmode="numeric" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-emerald-500"></div>
-            <div class="sm:col-span-2"><label class="block text-[11px] font-semibold text-slate-600 mb-1">Bắt đầu tích lũy từ tháng (để trống = từ tháng có thu nhập đầu tiên)</label><input v-model="it.startMonth" type="month" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-emerald-500"></div>
-          </div>
-        </div>
-      </div>
-      <div class="flex gap-2">
-        <button @click="addEnvDraft('spend')" class="flex-1 py-2 rounded-xl text-xs font-semibold border border-dashed border-slate-300 text-slate-600 hover:bg-slate-50">+ Quỹ chi tiêu</button>
-        <button @click="addEnvDraft('save')" class="flex-1 py-2 rounded-xl text-xs font-semibold border border-dashed border-slate-300 text-slate-600 hover:bg-slate-50">+ Quỹ tiết kiệm</button>
-      </div>
-      <div :class="['text-xs font-semibold rounded-lg px-3 py-2', envDraftTotal === 100 ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-800']">
-        Tổng đã chia: {{ envDraftTotal }}% <span v-if="envDraftTotal !== 100">— {{ envDraftTotal < 100 ? 'còn ' + Math.round((100 - envDraftTotal) * 10) / 10 + '% chưa vào quỹ nào' : 'vượt ' + Math.round((envDraftTotal - 100) * 10) / 10 + '%' }}</span>
-      </div>
+      <div><label class="block text-xs font-semibold text-slate-700 mb-1">Tên khoản tiết kiệm</label><input v-model="savingForm.name" type="text" placeholder="Ví dụ: Tiết kiệm cưới" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-medium outline-none focus:border-indigo-500"></div>
+      <div><label class="block text-xs font-semibold text-slate-700 mb-1">Mục tiêu số tiền (không bắt buộc)</label><input type="text" inputmode="numeric" placeholder="0" :value="fmtNum(savingForm.goalAmount)" @input="onMoneyInput(savingForm, 'goalAmount', $event)" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-medium outline-none focus:border-indigo-500"></div>
       <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
-        <button @click="showEnvModal = false" class="px-4 py-2 rounded-xl text-sm font-semibold text-slate-500 hover:bg-slate-50">Hủy</button>
-        <button @click="saveEnvelopeSettings" class="px-5 py-2 rounded-xl text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white">Lưu</button>
+        <button @click="showSavingModal = false" class="px-4 py-2 rounded-xl text-sm font-semibold text-slate-500 hover:bg-slate-50">Hủy</button>
+        <button @click="saveSaving" class="px-5 py-2 rounded-xl text-sm font-bold bg-indigo-600 hover:bg-indigo-700 text-white">Lưu</button>
       </div>
     </div>
   </div>
 
-  <!-- MODAL: RÚT TIỀN TỪ QUỸ -->
+  <!-- MODAL: GỬI THÊM VÀO TIẾT KIỆM -->
+  <div v-if="showDepositModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-5 space-y-4">
+      <div class="flex items-center justify-between gap-3">
+        <h3 class="font-bold text-slate-900 text-base"><i class="fa-solid fa-circle-plus text-indigo-600 mr-2"></i>Gửi vào tiết kiệm</h3>
+        <button @click="showDepositModal = false" class="text-slate-400 hover:text-slate-700 w-8 h-8"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="space-y-2">
+        <label class="block text-xs font-semibold text-slate-700">Khoản tiết kiệm</label>
+        <select v-model="depositForm.savingId" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-medium outline-none">
+          <option value="" disabled>— Chọn khoản tiết kiệm —</option>
+          <option v-for="a in savings" :key="a.id" :value="a.id">{{ a.name }}</option>
+          <option value="__new__">+ Tạo khoản tiết kiệm mới...</option>
+        </select>
+        <input v-if="depositForm.savingId === '__new__'" v-model="depositForm.newName" type="text" placeholder="Tên khoản tiết kiệm mới" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-indigo-500">
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-700 mb-1">Lấy từ tiền còn lại của tháng</label>
+        <input v-model="depositForm.month" type="month" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-medium outline-none">
+        <p v-if="depositHint" class="text-[11px] text-slate-500 mt-1.5 leading-relaxed">
+          Tích lũy còn lại tháng này: <b :class="depositHint.rem >= 0 ? 'text-emerald-700' : 'text-rose-600'">{{ formatVND(depositHint.rem) }}</b> • đã gửi: <b class="text-indigo-600">{{ formatVND(depositHint.dep) }}</b>
+          <button v-if="depositHint.left > 0" @click="depositForm.amount = depositHint.left" class="ml-1 font-semibold text-indigo-600 underline">Gửi toàn bộ phần chưa gửi ({{ formatVND(depositHint.left) }})</button>
+        </p>
+      </div>
+      <div><label class="block text-xs font-semibold text-slate-700 mb-1">Số tiền gửi (VNĐ)</label><input type="text" inputmode="numeric" placeholder="0" :value="fmtNum(depositForm.amount)" @input="onMoneyInput(depositForm, 'amount', $event)" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-medium outline-none focus:border-indigo-500"></div>
+      <div><label class="block text-xs font-semibold text-slate-700 mb-1">Ghi chú (không bắt buộc)</label><input v-model="depositForm.note" type="text" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-indigo-500"></div>
+      <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+        <button @click="showDepositModal = false" class="px-4 py-2 rounded-xl text-sm font-semibold text-slate-500 hover:bg-slate-50">Hủy</button>
+        <button @click="saveDeposit" class="px-5 py-2 rounded-xl text-sm font-bold bg-indigo-600 hover:bg-indigo-700 text-white">Gửi</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: RÚT TIỀN TIẾT KIỆM -->
   <div v-if="showWithdrawModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60">
     <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-5 space-y-4">
       <div class="flex items-center justify-between gap-3">
-        <h3 class="font-bold text-slate-900 text-base">Rút từ "{{ withdrawForm.envName }}"</h3>
+        <h3 class="font-bold text-slate-900 text-base">Rút từ "{{ withdrawForm.savingName }}"</h3>
         <button @click="showWithdrawModal = false" class="text-slate-400 hover:text-slate-700 w-8 h-8"><i class="fa-solid fa-xmark"></i></button>
       </div>
-      <div><label class="block text-xs font-semibold text-slate-700 mb-1">Số tiền rút (VNĐ)</label><input type="text" inputmode="numeric" placeholder="0" :value="fmtNum(withdrawForm.amount)" @input="onMoneyInput(withdrawForm, 'amount', $event)" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-medium outline-none focus:border-emerald-500"></div>
+      <div><label class="block text-xs font-semibold text-slate-700 mb-1">Số tiền rút (VNĐ)</label><input type="text" inputmode="numeric" placeholder="0" :value="fmtNum(withdrawForm.amount)" @input="onMoneyInput(withdrawForm, 'amount', $event)" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-medium outline-none focus:border-indigo-500"></div>
       <div><label class="block text-xs font-semibold text-slate-700 mb-1">Ngày rút</label><input v-model="withdrawForm.date" type="date" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-medium outline-none"></div>
-      <div><label class="block text-xs font-semibold text-slate-700 mb-1">Lý do</label><input v-model="withdrawForm.note" type="text" placeholder="Ví dụ: Sửa xe đột xuất" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-emerald-500"></div>
+      <div><label class="block text-xs font-semibold text-slate-700 mb-1">Lý do</label><input v-model="withdrawForm.note" type="text" placeholder="Ví dụ: Sửa xe đột xuất" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-indigo-500"></div>
       <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
         <button @click="showWithdrawModal = false" class="px-4 py-2 rounded-xl text-sm font-semibold text-slate-500 hover:bg-slate-50">Hủy</button>
         <button @click="saveWithdraw" class="px-5 py-2 rounded-xl text-sm font-bold bg-rose-600 hover:bg-rose-700 text-white">Ghi nhận rút</button>
@@ -1559,7 +1524,7 @@
           { id: 'incomes', name: 'Thu nhập & Lương', shortName: 'Thu nhập', icon: 'fa-solid fa-money-bill-wave' },
           { id: 'deductions', name: 'Khoản trừ lương', shortName: 'Trừ lương', icon: 'fa-solid fa-receipt' },
           { id: 'expenses', name: 'Chi tiêu hàng ngày', shortName: 'Chi tiêu', icon: 'fa-solid fa-cart-shopping' },
-          { id: 'envelopes', name: 'Chia quỹ', shortName: 'Quỹ', icon: 'fa-solid fa-envelope-open-text' },
+          { id: 'savings', name: 'Tiền tiết kiệm', shortName: 'Tiết kiệm', icon: 'fa-solid fa-piggy-bank' },
           { id: 'reports', name: 'Báo cáo & Data', shortName: 'Báo cáo', icon: 'fa-solid fa-file-invoice-dollar' }
         ];
 
@@ -1601,7 +1566,7 @@
           { name: 'Trả góp / Nợ', icon: 'fa-solid fa-credit-card' },
           { name: 'Bảo hiểm', icon: 'fa-solid fa-shield-halved' },
           { name: 'Gia đình', icon: 'fa-solid fa-people-roof' },
-          { name: 'Tiết kiệm / Hụi', icon: 'fa-solid fa-piggy-bank' },
+          { name: 'Tiết kiệm', icon: 'fa-solid fa-piggy-bank' },
           { name: 'Khác', icon: 'fa-solid fa-file-contract' }
         ];
 
@@ -1627,14 +1592,14 @@
           id: null, name: '', amount: 0, type: 'fixed', 
           startMonth: selectedMonth.value, endMonth: selectedMonth.value, 
           durationMonths: 6, termMode: 'months', active: true, 
-          category: 'Trả góp / Nợ', note: '', paidMonths: {}
+          category: 'Trả góp / Nợ', note: '', paidMonths: {}, savingId: '', newSavingName: ''
         });
         const deductionFormFormattedAmount = ref('');
 
         const showExpenseModal = ref(false);
         const expenseForm = ref({
           id: null, amount: 0, date: new Date().toISOString().substring(0, 10), 
-          category: 'Ăn uống', note: '', envelope: ''
+          category: 'Ăn uống', note: ''
         });
         const expenseFormFormattedAmount = ref('');
         const modalExpenseFormattedAmount = ref('');
@@ -1814,20 +1779,17 @@
           };
         });
 
-        // ===== QUỸ TIỀN (chia thu nhập vào các quỹ, theo % hoặc số tiền cố định) =====
-        const ENV_COLORS = ['#10b981', '#6366f1', '#f59e0b', '#f43f5e', '#0ea5e9', '#8b5cf6', '#14b8a6', '#ec4899'];
-        const envelopeCfg = ref(null);
-        const defaultEnvelopes = () => ({ id: 'envelopes', base: 'afterDeductions', deductionsIn: '', items: [
-          { id: 'survive', name: 'Sinh tồn', mode: 'pct', value: 50, kind: 'spend' },
-          { id: 'saving', name: 'Tiết kiệm / Đầu tư', mode: 'pct', value: 20, kind: 'save', goalAmount: 0, goalMonths: 24, transferred: {}, withdrawals: [] },
-          { id: 'reserve', name: 'Dự phòng khẩn cấp', mode: 'pct', value: 10, kind: 'save', goalAmount: 0, goalMonths: 0, transferred: {}, withdrawals: [] },
-          { id: 'fun', name: 'Quỹ vui', mode: 'pct', value: 20, kind: 'spend' }
-        ]});
-        const envCfg = computed(() => envelopeCfg.value || defaultEnvelopes());
-        const ensureCfg = () => { if (!envelopeCfg.value) envelopeCfg.value = defaultEnvelopes(); return envelopeCfg.value; };
-        const persistEnv = () => syncItemToFirestore('settings', envelopeCfg.value);
-        const spendEnvelopes = computed(() => envCfg.value.items.filter(i => i.kind === 'spend'));
+        // ===== TIỀN TIẾT KIỆM (các khoản do người dùng tự đặt tên) =====
+        const SAV_COLORS = ['#6366f1', '#10b981', '#f59e0b', '#f43f5e', '#0ea5e9', '#8b5cf6', '#14b8a6', '#ec4899'];
+        const savings = ref([]);
+        const isSavingCat = (c) => String(c || '').startsWith('Tiết kiệm');
         const fmtYM = (ym) => ym ? ym.slice(5) + '/' + ym.slice(0, 4) : '';
+        const fmtNum = (n) => Number(n) ? new Intl.NumberFormat('vi-VN').format(Number(n)) : '';
+        const onMoneyInput = (obj, key, e) => {
+          const digits = e.target.value.replace(/\D/g, '');
+          obj[key] = digits ? Number(digits) : 0;
+          e.target.value = fmtNum(obj[key]);
+        };
         const incomeOfMonth = (ym) => incomesForMonth(ym).reduce((sum, i) => sum + Number(i.amount || 0), 0);
         const deductionOfMonth = (ym) => {
           const n = monthToNum(ym);
@@ -1837,201 +1799,141 @@
             return ok ? sum + Number(d.amount || 0) : sum;
           }, 0);
         };
-        const firstIncomeMonth = computed(() => {
-          let min = '';
-          incomes.value.forEach(i => { const m = i.startMonth || (i.date || '').slice(0, 7); if (m && (!min || m < min)) min = m; });
-          return min || selectedMonth.value;
+        const expenseOfMonth = (ym) => expenses.value.filter(e => e.date && e.date.startsWith(ym)).reduce((sum, e) => sum + Number(e.amount || 0), 0);
+        const monthRemaining = (ym) => incomeOfMonth(ym) - deductionOfMonth(ym) - expenseOfMonth(ym);
+        const depositedInMonth = (ym) => savings.value.reduce((sum, a) => sum + (a.deposits || []).filter(x => x.month === ym).reduce((t, x) => t + Number(x.amount || 0), 0), 0);
+
+        // Số dư = khoản trừ lương (danh mục Tiết kiệm) đã đánh dấu "đã trừ" + tiền gửi thêm từ phần còn lại - tiền đã rút
+        const savingsView = computed(() => {
+          const ym = selectedMonth.value;
+          return savings.value.map((acc, idx) => {
+            const hist = [];
+            let fromDed = 0, fromManual = 0, withdrawn = 0;
+            deductions.value.filter(d => isSavingCat(d.category) && d.savingId === acc.id).forEach(d => {
+              Object.keys(d.paidMonths || {}).forEach(m => {
+                if (d.paidMonths[m] && m <= ym) {
+                  fromDed += Number(d.amount || 0);
+                  hist.push({ id: 'd_' + d.id + '_' + m, sortKey: m + '-00', when: fmtYM(m), text: 'Trừ lương: ' + d.name, amount: Number(d.amount || 0), kind: 'deduction' });
+                }
+              });
+            });
+            (acc.deposits || []).filter(x => x.month <= ym).forEach(x => {
+              fromManual += Number(x.amount || 0);
+              hist.push({ id: x.id, sortKey: x.month + '-00', when: fmtYM(x.month), text: x.note ? 'Gửi thêm: ' + x.note : 'Gửi thêm từ tiền còn lại', amount: Number(x.amount || 0), kind: 'deposit' });
+            });
+            (acc.withdrawals || []).filter(w => w.date.slice(0, 7) <= ym).forEach(w => {
+              withdrawn += Number(w.amount || 0);
+              hist.push({ id: w.id, sortKey: w.date, when: w.date.slice(8, 10) + '/' + w.date.slice(5, 7) + '/' + w.date.slice(0, 4), text: w.note ? 'Rút: ' + w.note : 'Rút tiền', amount: -Number(w.amount || 0), kind: 'withdraw' });
+            });
+            hist.sort((a, b) => b.sortKey.localeCompare(a.sortKey));
+            const balance = fromDed + fromManual - withdrawn;
+            const goal = Number(acc.goalAmount) || 0;
+            return { ...acc, color: SAV_COLORS[idx % SAV_COLORS.length], balance, fromDed, fromManual, withdrawn, history: hist, goal,
+                     progress: goal > 0 ? Math.min(100, Math.max(0, Math.round(balance / goal * 100))) : 0, reached: goal > 0 && balance >= goal };
+          });
         });
-        // Cách tính: 'afterDeductions' = trừ khoản trừ lương trước rồi chia phần còn lại; 'income' = chia toàn bộ thu nhập
-        const envBase = computed(() => envCfg.value.base === 'income' ? 'income' : 'afterDeductions');
-        const poolOfMonth = (ym) => envBase.value === 'income' ? incomeOfMonth(ym) : Math.max(0, incomeOfMonth(ym) - deductionOfMonth(ym));
-        const histOf = (it) => it.ruleHistory || (it.pctHistory ? it.pctHistory.map(e => ({ from: e.from, mode: 'pct', value: e.pct })) : null);
-        const ruleAt = (it, ym) => {
-          let rule = { mode: it.mode === 'amount' ? 'amount' : 'pct', value: Number(it.mode ? it.value : it.pct) || 0 };
-          const h = histOf(it);
-          if (h && h.length) {
-            rule = { mode: h[0].mode === 'amount' ? 'amount' : 'pct', value: Number(h[0].value) || 0 };
-            h.forEach(e => { if (e.from <= ym) rule = { mode: e.mode === 'amount' ? 'amount' : 'pct', value: Number(e.value) || 0 }; });
+        const savingsTotal = computed(() => savingsView.value.reduce((sum, a) => sum + a.balance, 0));
+        const unassignedSavingDeds = computed(() => deductions.value.filter(d => isSavingCat(d.category) && !savings.value.some(a => a.id === d.savingId)));
+        const expandedSaving = ref({});
+        const newSavingId = () => 'sav_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
+
+        const showSavingModal = ref(false);
+        const savingForm = ref({ id: null, name: '', goalAmount: 0 });
+        const openSavingModal = (acc = null) => {
+          savingForm.value = acc ? { id: acc.id, name: acc.name, goalAmount: Number(acc.goalAmount) || 0 } : { id: null, name: '', goalAmount: 0 };
+          showSavingModal.value = true;
+        };
+        const saveSaving = () => {
+          const f = savingForm.value, name = String(f.name || '').trim();
+          if (!name) { showToast('Hãy đặt tên cho khoản tiết kiệm', 'error'); return; }
+          let acc = f.id ? savings.value.find(a => a.id === f.id) : null;
+          if (acc) { acc.name = name; acc.goalAmount = Number(f.goalAmount) || 0; }
+          else {
+            savings.value.push({ id: newSavingId(), name, goalAmount: Number(f.goalAmount) || 0, createdAt: new Date().toISOString(), deposits: [], withdrawals: [] });
+            acc = savings.value[savings.value.length - 1];
           }
-          return rule;
+          syncItemToFirestore('savings', acc);
+          showSavingModal.value = false;
+          showToast('Đã lưu khoản tiết kiệm!');
         };
-        const allocAt = (it, ym) => { const r = ruleAt(it, ym); return r.mode === 'amount' ? r.value : Math.round(poolOfMonth(ym) * r.value / 100); };
-        const envelopeBasis = computed(() => {
-          const ym = selectedMonth.value;
-          return { base: envBase.value, income: incomeOfMonth(ym), ded: deductionOfMonth(ym), pool: poolOfMonth(ym) };
-        });
-        const envelopeTotalPct = computed(() => {
-          const ym = selectedMonth.value, pool = poolOfMonth(ym);
-          if (pool <= 0) return 0;
-          const t = Math.round(envCfg.value.items.reduce((sum, it) => sum + allocAt(it, ym), 0) / pool * 1000) / 10;
-          return Math.abs(t - 100) < 0.5 ? 100 : t;
-        });
+        const deleteSaving = (id) => {
+          const a = savings.value.find(x => x.id === id);
+          if (!a || !confirm(`Xóa khoản tiết kiệm "${a.name}"? Các lần gửi thêm và rút của nó sẽ mất, khoản trừ lương đang trỏ tới nó sẽ thành "chưa chọn".`)) return;
+          savings.value = savings.value.filter(x => x.id !== id);
+          deleteItemFromFirestore('savings', id);
+          showToast('Đã xóa khoản tiết kiệm');
+        };
 
-        const envelopeView = computed(() => {
-          const cfg = envCfg.value, ym = selectedMonth.value, basis = envelopeBasis.value, pool = basis.pool;
-          const spendIds = cfg.items.filter(i => i.kind === 'spend').map(i => i.id);
-          const envOf = (e) => (e.envelope && spendIds.includes(e.envelope)) ? e.envelope
-            : ((e.category === 'Giải trí' && spendIds.includes('fun')) ? 'fun' : spendIds[0]);
-          return cfg.items.map((it, idx) => {
-            const rule = ruleAt(it, ym), alloc = allocAt(it, ym);
-            const pct = pool > 0 ? Math.round(alloc / pool * 1000) / 10 : (rule.mode === 'pct' ? rule.value : 0);
-            const label = rule.mode === 'amount' ? formatVND(rule.value) + '/tháng • ' + pct + '%' : pct + '%';
-            const base = { ...it, mode: rule.mode, value: rule.value, pct, label, alloc, color: ENV_COLORS[idx % ENV_COLORS.length] };
-            if (it.kind === 'spend') {
-              const dedPart = (basis.base === 'income' && cfg.deductionsIn === it.id) ? basis.ded : 0;
-              const spent = currentMonthExpenses.value.filter(e => envOf(e) === it.id).reduce((sum, e) => sum + Number(e.amount || 0), 0) + dedPart;
-              return { ...base, spent, dedPart, remaining: alloc - spent, usedPct: alloc > 0 ? Math.round(spent / alloc * 100) : (spent > 0 ? 100 : 0) };
-            }
-            const start = it.startMonth || firstIncomeMonth.value;
-            let accrued = 0, count = 0, transferredSum = 0;
-            for (let m = start, n = 0; monthToNum(m) <= monthToNum(ym) && n < 600; m = addMonthsToYM(m, 1), n++) {
-              const a = allocAt(it, m);
-              accrued += a; count++;
-              if (it.transferred && it.transferred[m]) transferredSum += a;
-            }
-            const withdrawals = (it.withdrawals || []).slice().sort((a, b) => b.date.localeCompare(a.date));
-            const withdrawn = withdrawals.filter(w => w.date.slice(0, 7) <= ym).reduce((sum, w) => sum + Number(w.amount || 0), 0);
-            const balance = accrued - withdrawn;
-            const goalAmount = Number(it.goalAmount) || 0, goalMonths = Number(it.goalMonths) || 0;
-            let progress = 0, eta = '';
-            if (goalAmount > 0) {
-              progress = Math.min(100, Math.max(0, Math.round(balance / goalAmount * 100)));
-              if (balance < goalAmount && alloc > 0) eta = addMonthsToYM(ym, Math.ceil((goalAmount - balance) / alloc));
-            } else if (goalMonths > 0) {
-              progress = Math.min(100, Math.round(count / goalMonths * 100));
-              eta = addMonthsToYM(start, goalMonths - 1);
-            }
-            return { ...base, accrued, count, withdrawn, withdrawals, balance, transferredSum, isTransferred: !!(it.transferred && it.transferred[ym]),
-                     goalAmount, goalMonths, progress, eta, goalReached: (goalAmount > 0 && balance >= goalAmount) || (goalAmount <= 0 && goalMonths > 0 && count >= goalMonths) };
-          });
+        const showDepositModal = ref(false);
+        const depositForm = ref({ savingId: '', newName: '', month: '', amount: 0, note: '' });
+        const depositHint = computed(() => {
+          const ym = depositForm.value.month;
+          if (!ym) return null;
+          const rem = monthRemaining(ym), dep = depositedInMonth(ym);
+          return { rem, dep, left: Math.max(0, rem - dep) };
         });
+        const openDeposit = (savingId = '', month = selectedMonth.value, amount = 0) => {
+          const first = savings.value.length === 1 ? savings.value[0].id : (savings.value.length ? '' : '__new__');
+          depositForm.value = { savingId: savingId || first, newName: '', month, amount: Number(amount) || 0, note: '' };
+          showDepositModal.value = true;
+        };
+        const openDepositForMonth = (m) => {
+          const ym = `${selectedYear.value}-${String(m).padStart(2, '0')}`;
+          openDeposit('', ym, Math.max(0, monthRemaining(ym) - depositedInMonth(ym)));
+        };
+        const saveDeposit = () => {
+          const f = depositForm.value, amt = Number(f.amount);
+          if (!f.month) { showToast('Vui lòng chọn tháng!', 'error'); return; }
+          if (!amt || amt <= 0) { showToast('Vui lòng nhập số tiền gửi!', 'error'); return; }
+          let acc;
+          if (f.savingId === '__new__') {
+            const name = String(f.newName || '').trim();
+            if (!name) { showToast('Hãy đặt tên cho khoản tiết kiệm mới', 'error'); return; }
+            savings.value.push({ id: newSavingId(), name, goalAmount: 0, createdAt: new Date().toISOString(), deposits: [], withdrawals: [] });
+            acc = savings.value[savings.value.length - 1];
+          } else acc = savings.value.find(a => a.id === f.savingId);
+          if (!acc) { showToast('Hãy chọn khoản tiết kiệm', 'error'); return; }
+          acc.deposits = acc.deposits || [];
+          acc.deposits.push({ id: 'dep_' + Date.now(), month: f.month, amount: amt, note: f.note || '' });
+          syncItemToFirestore('savings', acc);
+          showDepositModal.value = false;
+          showToast(`Đã gửi ${formatVND(amt)} vào "${acc.name}"`);
+        };
 
-        const showEnvModal = ref(false);
-        const envDraft = ref({ base: 'afterDeductions', deductionsIn: '', items: [] });
-        const envDraftPool = computed(() => {
-          const ym = selectedMonth.value, inc = incomeOfMonth(ym);
-          return envDraft.value.base === 'income' ? inc : Math.max(0, inc - deductionOfMonth(ym));
-        });
-        const draftAlloc = (it) => it.mode === 'amount' ? (Number(it.value) || 0) : Math.round(envDraftPool.value * (Number(it.value) || 0) / 100);
-        const draftPct = (it) => envDraftPool.value > 0 ? Math.round(draftAlloc(it) / envDraftPool.value * 1000) / 10 : 0;
-        const envDraftTotal = computed(() => {
-          const pool = envDraftPool.value, items = envDraft.value.items;
-          if (pool <= 0) return items.reduce((sum, i) => sum + (i.mode === 'amount' ? 0 : (Number(i.value) || 0)), 0);
-          const t = Math.round(items.reduce((sum, i) => sum + draftAlloc(i), 0) / pool * 1000) / 10;
-          return Math.abs(t - 100) < 0.5 ? 100 : t;
-        });
-        // Đổi giữa % và số tiền thì tự quy đổi để giữ nguyên mức chia hiện tại
-        const setEnvMode = (it, mode) => {
-          if (it.mode === mode) return;
-          if (mode === 'amount') it.value = Math.round(draftAlloc(it) / 1000) * 1000;
-          else it.value = envDraftPool.value > 0 ? Math.round((Number(it.value) || 0) / envDraftPool.value * 1000) / 10 : 0;
-          it.mode = mode;
-        };
-        const openEnvelopeSettings = () => {
-          const ym = selectedMonth.value;
-          const d = JSON.parse(JSON.stringify(envCfg.value));
-          d.items.forEach(it => { const r = ruleAt(it, ym); it.mode = r.mode; it.value = r.value; delete it.pct; });
-          d.base = envBase.value;
-          d.deductionsIn = d.deductionsIn || '';
-          envDraft.value = d;
-          showEnvModal.value = true;
-        };
-        const addEnvDraft = (kind) => {
-          const it = { id: 'env_' + Date.now(), name: '', mode: 'pct', value: 0, kind };
-          if (kind === 'save') Object.assign(it, { goalAmount: 0, goalMonths: 0, transferred: {}, withdrawals: [] });
-          envDraft.value.items.push(it);
-        };
-        const removeEnvDraft = (i) => {
-          const it = envDraft.value.items[i];
-          if (envDraft.value.items.length <= 1) { showToast('Cần giữ lại ít nhất một quỹ', 'error'); return; }
-          if (it.kind === 'save' && !confirm('Xóa quỹ tiết kiệm sẽ mất luôn số tích lũy và lịch sử rút của nó. Vẫn xóa?')) return;
-          envDraft.value.items.splice(i, 1);
-          if (envDraft.value.deductionsIn === it.id) envDraft.value.deductionsIn = '';
-        };
-        const saveEnvelopeSettings = () => {
-          const d = envDraft.value, ym = selectedMonth.value;
-          if (d.items.some(i => !String(i.name).trim())) { showToast('Quỹ nào cũng cần có tên', 'error'); return; }
-          const old = {};
-          envCfg.value.items.forEach(i => { old[i.id] = i; });
-          const items = d.items.map(it => {
-            const o = old[it.id];
-            const rule = { mode: it.mode === 'amount' ? 'amount' : 'pct', value: Number(it.value) || 0 };
-            const out = { ...it, name: String(it.name).trim() };
-            delete out.pct; delete out.pctHistory;
-            let h = o && histOf(o) ? histOf(o).slice() : null;
-            if (o) {
-              const cur = ruleAt(o, ym);
-              if (cur.mode !== rule.mode || cur.value !== rule.value) {
-                if (!h) h = [{ from: '0000-00', mode: cur.mode, value: cur.value }];
-                h = h.filter(x => x.from !== ym).concat([{ from: ym, mode: rule.mode, value: rule.value }]).sort((a, b) => a.from.localeCompare(b.from));
-              }
-            }
-            if (h) { out.ruleHistory = h; out.mode = h[h.length - 1].mode; out.value = h[h.length - 1].value; }
-            else { out.mode = rule.mode; out.value = rule.value; delete out.ruleHistory; }
-            return out;
-          });
-          const base = d.base === 'income' ? 'income' : 'afterDeductions';
-          envelopeCfg.value = { id: 'envelopes', base, deductionsIn: base === 'income' ? (d.deductionsIn || '') : '', items };
-          persistEnv();
-          showEnvModal.value = false;
-          showToast(envelopeTotalPct.value === 100 ? 'Đã lưu cách chia quỹ!' : `Đã lưu — hiện đang chia ${envelopeTotalPct.value}% (chưa đúng 100%)`);
-        };
-        const toggleTransferred = (id) => {
-          const it = ensureCfg().items.find(i => i.id === id);
-          if (!it) return;
-          it.transferred = it.transferred || {};
-          if (it.transferred[selectedMonth.value]) delete it.transferred[selectedMonth.value];
-          else it.transferred[selectedMonth.value] = true;
-          persistEnv();
-        };
-        // Ô nhập tiền có dấu chấm ngăn cách hàng nghìn
-        const fmtNum = (n) => Number(n) ? new Intl.NumberFormat('vi-VN').format(Number(n)) : '';
-        const onMoneyInput = (obj, key, e) => {
-          const digits = e.target.value.replace(/\D/g, '');
-          obj[key] = digits ? Number(digits) : 0;
-          e.target.value = fmtNum(obj[key]);
-        };
         const showWithdrawModal = ref(false);
-        const withdrawForm = ref({ envId: '', envName: '', amount: '', date: '', note: '' });
-        const openWithdraw = (e) => {
-          withdrawForm.value = { envId: e.id, envName: e.name, amount: '', date: new Date().toISOString().substring(0, 10), note: '' };
+        const withdrawForm = ref({ savingId: '', savingName: '', amount: 0, date: '', note: '' });
+        const openWithdraw = (a) => {
+          withdrawForm.value = { savingId: a.id, savingName: a.name, amount: 0, date: new Date().toISOString().substring(0, 10), note: '' };
           showWithdrawModal.value = true;
         };
         const saveWithdraw = () => {
           const f = withdrawForm.value, amt = Number(f.amount);
           if (!amt || amt <= 0) { showToast('Vui lòng nhập số tiền rút!', 'error'); return; }
-          const it = ensureCfg().items.find(i => i.id === f.envId);
-          if (!it) return;
-          it.withdrawals = it.withdrawals || [];
-          it.withdrawals.push({ id: 'wd_' + Date.now(), amount: amt, date: f.date, note: f.note || '' });
-          persistEnv();
+          const acc = savings.value.find(a => a.id === f.savingId);
+          if (!acc) return;
+          const view = savingsView.value.find(a => a.id === f.savingId);
+          if (view && amt > view.balance) { showToast('Số tiền rút lớn hơn số dư hiện có', 'error'); return; }
+          acc.withdrawals = acc.withdrawals || [];
+          acc.withdrawals.push({ id: 'wd_' + Date.now(), amount: amt, date: f.date, note: f.note || '' });
+          syncItemToFirestore('savings', acc);
           showWithdrawModal.value = false;
-          showToast('Đã ghi nhận khoản rút từ ' + f.envName);
+          showToast('Đã ghi nhận khoản rút từ ' + f.savingName);
         };
-        const deleteWithdraw = (envId, wid) => {
-          const it = ensureCfg().items.find(i => i.id === envId);
-          if (!it || !confirm('Xóa lần rút này? Số dư quỹ sẽ được cộng lại.')) return;
-          it.withdrawals = (it.withdrawals || []).filter(w => w.id !== wid);
-          persistEnv();
+        const deleteSavingEntry = (accId, entry) => {
+          const acc = savings.value.find(a => a.id === accId);
+          if (!acc || !confirm('Xóa dòng này? Số dư sẽ được tính lại.')) return;
+          if (entry.kind === 'deposit') acc.deposits = (acc.deposits || []).filter(x => x.id !== entry.id);
+          if (entry.kind === 'withdraw') acc.withdrawals = (acc.withdrawals || []).filter(x => x.id !== entry.id);
+          syncItemToFirestore('savings', acc);
         };
 
         // Menu điện thoại: 3 tab chính + mục "Quản lý" gom Thu nhập / Trừ lương / Báo cáo
         const showMoreMenu = ref(false);
         const moreDesc = { incomes: 'Lương, thưởng, thu nhập khác', deductions: 'Tiền nhà, trả góp, khoản trừ cố định', reports: 'Tổng quan năm, sao lưu, tài khoản' };
         const moreTabs = tabs.filter(t => moreDesc[t.id]).map(t => ({ ...t, desc: moreDesc[t.id] }));
-        const mainMobileTabs = tabs.filter(t => ['dashboard', 'expenses', 'envelopes'].includes(t.id));
+        const mainMobileTabs = tabs.filter(t => ['dashboard', 'expenses', 'savings'].includes(t.id));
         const isMoreActive = computed(() => moreTabs.some(t => t.id === activeTab.value));
         const goTab = (id) => { activeTab.value = id; showMoreMenu.value = false; window.scrollTo({ top: 0 }); };
-
-        // Tổng hợp tiền tiết kiệm (các quỹ loại "save")
-        const savingFunds = computed(() => envelopeView.value.filter(e => e.kind === 'save'));
-        const savingTotals = computed(() => {
-          const f = savingFunds.value;
-          const balance = f.reduce((a, e) => a + e.balance, 0);
-          const inBank = f.reduce((a, e) => a + e.transferredSum - e.withdrawn, 0);
-          const pending = f.reduce((a, e) => a + (e.accrued - e.transferredSum), 0);
-          return { balance, inBank, pending };
-        });
 
         const getPercent = (amount, total) => {
           if (!total || total <= 0) return 0;
@@ -2050,7 +1952,7 @@
         };
 
         const getDeductionCategoryIcon = (catName) => {
-          const cat = deductionCategories.find(c => c.name === catName);
+          const cat = deductionCategories.find(c => c.name === catName) || (isSavingCat(catName) ? deductionCategories.find(c => c.name === 'Tiết kiệm') : null);
           return cat ? cat.icon : 'fa-solid fa-receipt';
         };
 
@@ -2128,7 +2030,7 @@
 
         const openDeductionModal = (item = null) => {
           if (item) {
-            deductionForm.value = { ...item, paidMonths: item.paidMonths || {} };
+            deductionForm.value = { ...item, category: isSavingCat(item.category) ? 'Tiết kiệm' : item.category, savingId: item.savingId || '', newSavingName: '', paidMonths: item.paidMonths || {} };
             deductionFormFormattedAmount.value = new Intl.NumberFormat('vi-VN').format(item.amount);
           } else {
             deductionForm.value = {
@@ -2143,7 +2045,9 @@
               active: true,
               category: 'Trả góp / Nợ',
               note: '',
-              paidMonths: {}
+              paidMonths: {},
+              savingId: '',
+              newSavingName: ''
             };
             deductionFormFormattedAmount.value = '';
           }
@@ -2152,7 +2056,7 @@
 
         const openExpenseModal = (item = null) => {
           if (item) {
-            expenseForm.value = { ...item, envelope: item.envelope || '' };
+            expenseForm.value = { ...item };
             modalExpenseFormattedAmount.value = new Intl.NumberFormat('vi-VN').format(item.amount);
             showExpenseModal.value = true;
           } else {
@@ -2173,7 +2077,7 @@
             localStorage.setItem(lsKey('incomes'), JSON.stringify(incomes.value));
             localStorage.setItem(lsKey('deductions'), JSON.stringify(deductions.value));
             localStorage.setItem(lsKey('expenses'), JSON.stringify(expenses.value));
-            localStorage.setItem(lsKey('envelopes'), JSON.stringify(envelopeCfg.value));
+            localStorage.setItem(lsKey('savings'), JSON.stringify(savings.value));
           } catch (e) {}
         };
         const plain = (o) => JSON.parse(JSON.stringify(o));
@@ -2200,7 +2104,7 @@
           incomes.value.forEach(i => syncItemToFirestore('incomes', i));
           deductions.value.forEach(d => syncItemToFirestore('deductions', d));
           expenses.value.forEach(e => syncItemToFirestore('expenses', e));
-          if (envelopeCfg.value) syncItemToFirestore('settings', envelopeCfg.value);
+          savings.value.forEach(a => syncItemToFirestore('savings', a));
         };
 
         const authErrorText = (code) => ({
@@ -2237,7 +2141,7 @@
 
         const stopListening = () => { unsubs.forEach(u => u()); unsubs = []; };
         const logout = async () => {
-          ['incomes', 'deductions', 'expenses', 'envelopes'].forEach(n => localStorage.removeItem(lsKey(n)));
+          ['incomes', 'deductions', 'expenses', 'savings'].forEach(n => localStorage.removeItem(lsKey(n)));
           stopListening();
           try { await window.FirebaseDB.signOut(authInstance); } catch (e) {}
         };
@@ -2260,12 +2164,11 @@
           const uid = currentUser.value.uid;
           const targets = { incomes, deductions, expenses };
           const serverEmpty = {};
-          try { const c = localStorage.getItem(lsKey('envelopes')); if (c) envelopeCfg.value = JSON.parse(c); } catch (e) {}
-          unsubs.push(onSnapshot(collection(dbInstance, 'users', uid, 'settings'), snap => {
-            const d = snap.docs.map(x => x.data()).find(x => x.id === 'envelopes');
-            envelopeCfg.value = d || null;
+          try { const c = localStorage.getItem(lsKey('savings')); if (c) savings.value = JSON.parse(c); } catch (e) {}
+          unsubs.push(onSnapshot(collection(dbInstance, 'users', uid, 'savings'), snap => {
+            savings.value = snap.docs.map(x => x.data()).sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''));
             saveToLocalBackup();
-          }, err => console.warn('Settings snapshot error', err)));
+          }, err => console.warn('Savings snapshot error', err)));
           Object.entries(targets).forEach(([name, target]) => {
             try { const c = localStorage.getItem(lsKey(name)); if (c) target.value = JSON.parse(c); } catch (e) {}
             unsubs.push(onSnapshot(collection(dbInstance, 'users', uid, name), snap => {
@@ -2340,6 +2243,19 @@
 
           recalculateDeductionTerm();
 
+          let savingId = '';
+          if (isSavingCat(deductionForm.value.category)) {
+            savingId = deductionForm.value.savingId || '';
+            if (savingId === '__new__') {
+              const nm = String(deductionForm.value.newSavingName || '').trim();
+              if (!nm) { showToast('Hãy đặt tên cho khoản tiết kiệm mới!', 'error'); return; }
+              savings.value.push({ id: newSavingId(), name: nm, goalAmount: 0, createdAt: new Date().toISOString(), deposits: [], withdrawals: [] });
+              const acc = savings.value[savings.value.length - 1];
+              syncItemToFirestore('savings', acc);
+              savingId = acc.id;
+            } else if (!savingId) { showToast('Vui lòng chọn khoản tiết kiệm cho khoản trừ này!', 'error'); return; }
+          }
+
           const item = {
             id: deductionForm.value.id || 'ded_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
             name: deductionForm.value.name,
@@ -2349,7 +2265,8 @@
             endMonth: deductionForm.value.type === 'time_limited' ? deductionForm.value.endMonth : '',
             durationMonths: deductionForm.value.durationMonths || 1,
             active: deductionForm.value.active !== false,
-            category: deductionForm.value.category,
+            category: isSavingCat(deductionForm.value.category) ? 'Tiết kiệm' : deductionForm.value.category,
+            savingId,
             note: deductionForm.value.note || '',
             paidMonths: deductionForm.value.paidMonths || {},
             createdAt: new Date().toISOString()
@@ -2371,7 +2288,10 @@
           
           item.paidMonths[selectedMonth.value] = !item.paidMonths[selectedMonth.value];
           await syncItemToFirestore('deductions', item);
-          showToast(item.paidMonths[selectedMonth.value] ? 'Đã đánh dấu ĐÃ TRỪ tháng này!' : 'Đã bỏ đánh dấu trừ tháng này!');
+          const sv = isSavingCat(item.category) ? savings.value.find(a => a.id === item.savingId) : null;
+          showToast(item.paidMonths[selectedMonth.value]
+            ? (sv ? `Đã trừ — ${formatVND(item.amount)} đã vào "${sv.name}"` : 'Đã đánh dấu ĐÃ TRỪ tháng này!')
+            : (sv ? `Đã bỏ trừ — rút lại ${formatVND(item.amount)} khỏi "${sv.name}"` : 'Đã bỏ đánh dấu trừ tháng này!'));
         };
 
         const isDeductionPaid = (deductionId) => {
@@ -2397,7 +2317,6 @@
             date: expenseForm.value.date,
             category: expenseForm.value.category,
             note: expenseForm.value.note || '',
-            envelope: expenseForm.value.envelope || '',
             createdAt: new Date().toISOString()
           };
 
@@ -2413,8 +2332,7 @@
             amount: 0,
             date: new Date().toISOString().substring(0, 10),
             category: 'Ăn uống',
-            note: '',
-            envelope: ''
+            note: ''
           };
           expenseFormFormattedAmount.value = '';
           showToast('Đã ghi nhận khoản chi tiêu!');
@@ -2541,7 +2459,7 @@
             incomes: incomes.value,
             deductions: deductions.value,
             expenses: expenses.value,
-            envelopes: envelopeCfg.value,
+            savings: savings.value,
             exportedAt: new Date().toISOString()
           };
           const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -2566,7 +2484,7 @@
                 incomes.value = data.incomes;
                 deductions.value = data.deductions;
                 expenses.value = data.expenses;
-                if (data.envelopes) envelopeCfg.value = data.envelopes;
+                if (Array.isArray(data.savings)) savings.value = data.savings;
                 saveToLocalBackup();
                 pushAllToCloud();
                 showToast('Đã khôi phục dữ liệu từ JSON thành công!');
@@ -2684,7 +2602,7 @@
               if (li) incomes.value = JSON.parse(li);
               if (ld) deductions.value = JSON.parse(ld);
               if (le) expenses.value = JSON.parse(le);
-              const lenv = localStorage.getItem('vtc_envelopes'); if (lenv) envelopeCfg.value = JSON.parse(lenv);
+              const lsav = localStorage.getItem('vtc_savings'); if (lsav) savings.value = JSON.parse(lsav);
               if (!li && !ld && !le) loadSampleData();
             } catch (e) { console.warn('LocalStorage error:', e); }
             authReady.value = true;
@@ -2715,7 +2633,7 @@
               stopListening();
               currentUser.value = user;
               if (user) { startListening(); }
-              else { incomes.value = []; deductions.value = []; expenses.value = []; envelopeCfg.value = null; }
+              else { incomes.value = []; deductions.value = []; expenses.value = []; savings.value = []; }
               isSyncedFlag.value = !!user;
               authReady.value = true;
             });
@@ -2728,10 +2646,11 @@
         });
 
         return {
-          showMoreMenu, moreTabs, mainMobileTabs, isMoreActive, goTab, savingFunds, savingTotals,
-          fmtNum, onMoneyInput,
-          envelopeView, envelopeBasis, envelopeTotalPct, setEnvMode, draftAlloc, draftPct, spendEnvelopes, fmtYM, showEnvModal, envDraft, envDraftTotal, openEnvelopeSettings, addEnvDraft, removeEnvDraft,
-          saveEnvelopeSettings, toggleTransferred, showWithdrawModal, withdrawForm, openWithdraw, saveWithdraw, deleteWithdraw,
+          showMoreMenu, moreTabs, mainMobileTabs, isMoreActive, goTab,
+          savings, savingsView, savingsTotal, unassignedSavingDeds, isSavingCat, expandedSaving, fmtYM, fmtNum, onMoneyInput,
+          showSavingModal, savingForm, openSavingModal, saveSaving, deleteSaving,
+          showDepositModal, depositForm, depositHint, openDeposit, openDepositForMonth, depositedInMonth, saveDeposit,
+          showWithdrawModal, withdrawForm, openWithdraw, saveWithdraw, deleteSavingEntry,
           activeTab, deductionSubTab, tabs, selectedMonth, selectedYear,
           formattedSelectedMonthLabel, changeMonth, resetToCurrentMonth,
           incomes, deductions, expenses, currentMonthIncomes, currentMonthDeductions,
